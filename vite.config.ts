@@ -6,11 +6,25 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [
-    tailwindcss(), 
-    sveltekit(), 
+    tailwindcss(),
+    sveltekit(),
     devtoolsJson(),
     Icons({
       compiler: "svelte"
     })
-  ]
+  ],
+  build: {
+    rollupOptions: {
+      input: {
+        // Ensure service worker is included in build
+        'service-worker': 'static/service-worker.js'
+      }
+    }
+  },
+  server: {
+    fs: {
+      // Allow serving files from static directory during development
+      allow: ['..']
+    }
+  }
 });

@@ -13,6 +13,9 @@ const config = {
 		version: {
 			name: process.env.VERCEL_GIT_COMMIT_SHA ?? "DEV",
 			pollInterval: 60 * 60 * 1000
+		},
+		serviceWorker: {
+			register: false // We're registering manually in app.html
 		}
 	}
 };
