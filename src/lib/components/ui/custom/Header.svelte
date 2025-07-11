@@ -5,7 +5,9 @@
 
 <header class="flex items-center justify-between border-b px-8 py-2">
   <div>
-    <img src="./audiodb.png" class="size-10" alt="Blockate Audio Browser Logo" />
+    <a href="/">
+      <img src="./audiodb.png" class="size-10" alt="Blockate Audio Browser Logo" />
+    </a>
   </div>
   <div>
     <AuthButton />
