@@ -1,7 +1,7 @@
 <script lang="ts">
   import SearchBar from '$lib/components/ui/custom/SearchBar.svelte';
   import FilterButton from '$lib/components/ui/custom/FilterButton.svelte';
-  import MusicTable from '$lib/components/ui/custom/MusicTable.svelte';
+  import MusicGrid from '$lib/components/ui/custom/MusicGrid.svelte';
   import SortButton from '$lib/components/ui/custom/SortButton.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -266,16 +266,18 @@
 </script>
 
 <div class="min-h-screen bg-background w-full text-foreground">
-  <div class="w-full py-8 px-8">
+  <div class="w-full py-4 px-4 md:py-8 md:px-8">
     <!-- Page Header -->
-    <div class="mb-8">      
+    <div class="mb-6 md:mb-8">
       <!-- Search and Filter Controls -->
-      <div class="flex items-center gap-4 mb-6">
+      <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center">
         <div class="flex-1">
           <SearchBar bind:value={searchQuery} onSearch={handleSearch} />
         </div>
-        <FilterButton updateFilters={handleFiltersUpdate} initialFilters={appliedFilters} />
-        <SortButton updateSort={handleSortUpdate} initialSort={appliedSort} />
+        <div class="flex gap-2 md:gap-4">
+          <FilterButton updateFilters={handleFiltersUpdate} initialFilters={appliedFilters} />
+          <SortButton updateSort={handleSortUpdate} initialSort={appliedSort} />
+        </div>
       </div>
 
       <!-- Results Info -->
@@ -292,13 +294,13 @@
       </div>
     </div>
 
-    <!-- Music Table -->
+    <!-- Music Grid -->
     {#if isLoading}
       <div class="text-center">
         Loading...
       </div>
     {:else}
-      <MusicTable
+      <MusicGrid
       tracks={tracks}
       bind:currentTrack
       bind:isPlaying
@@ -311,16 +313,18 @@
 
     <!-- Pagination -->
     {#if totalPages > 1}
-      <div class="mt-8 flex flex-col items-center gap-4">
+      <div class="mt-6 md:mt-8 flex flex-col items-center gap-4">
         <!-- Main pagination controls -->
-        <div class="flex justify-center items-center gap-2">
+        <div class="flex justify-center items-center gap-1 md:gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             disabled={currentPage === 1}
             onclick={() => handlePageChange(currentPage - 1)}
+            class="text-xs md:text-sm"
           >
-            Previous
+            <span class="hidden sm:inline">Previous</span>
+            <span class="sm:hidden">Prev</span>
           </Button>
           
           <div class="flex items-center gap-1">
@@ -333,17 +337,19 @@
                 variant={page === currentPage ? "default" : "outline"}
                 size="sm"
                 onclick={() => handlePageChange(page)}
+                class="text-xs md:text-sm min-w-8 md:min-w-10"
               >
                 {page}
               </Button>
             {/each}
             
             {#if totalPages > 5 && currentPage < totalPages - 2}
-              <span class="px-2">...</span>
+              <span class="px-1 md:px-2 text-xs md:text-sm">...</span>
               <Button
                 variant="outline"
                 size="sm"
                 onclick={() => handlePageChange(totalPages)}
+                class="text-xs md:text-sm min-w-8 md:min-w-10"
               >
                 {totalPages}
               </Button>
@@ -355,16 +361,17 @@
             size="sm"
             disabled={currentPage === totalPages}
             onclick={() => handlePageChange(currentPage + 1)}
+            class="text-xs md:text-sm"
           >
-            Next
+            <span class="hidden sm:inline">Next</span>
+            <span class="sm:hidden">Next</span>
           </Button>
         </div>
         
         <!-- Page info and jump to page -->
-        <div class="flex items-center gap-4 text-sm text-muted-foreground">
-          
+        <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs md:text-sm text-muted-foreground">
           <div class="flex items-center gap-2">
-            <span>Go to page:</span>
+            <span class="whitespace-nowrap">Go to page:</span>
             <Input
               type="text"
               inputmode="numeric"
@@ -372,7 +379,7 @@
               min="1"
               max={totalPages}
               bind:value={jumpToPage}
-              class="w-16 h-8 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              class="w-12 md:w-16 h-7 md:h-8 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               placeholder={currentPage.toString()}
               onkeydown={(e) => {
                 if (e.key === 'Enter') {
@@ -388,7 +395,7 @@
                 jumpToPage = target.value;
               }}
             />
-            <Button size="sm" variant="ghost" onclick={handleJumpToPage}>Go</Button>
+            <Button size="sm" variant="ghost" onclick={handleJumpToPage} class="text-xs md:text-sm">Go</Button>
           </div>
         </div>
       </div>

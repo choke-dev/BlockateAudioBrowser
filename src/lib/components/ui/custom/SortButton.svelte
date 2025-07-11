@@ -83,37 +83,41 @@
 				</Button>
 			{/snippet}
 		</Popover.Trigger>
-		<Popover.Content class="w-[32rem] rounded-lg p-4 shadow-lg">
-			<div class="mb-4 flex items-center space-x-2">
-				<span class="text-sm">Sort by:</span>
-				<Select.Root type="single" name="sort-field" bind:value={sortField}>
-					<Select.Trigger class="w-[180px]">
-						{sortOptions.find((opt) => opt.value === sortField)?.label || 'Select field...'}
-					</Select.Trigger>
-					<Select.Content>
-						{#each sortOptions as option}
-							<Select.Item value={option.value} label={option.label}>
-								{option.label}
-							</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+		<Popover.Content class="w-[90vw] max-w-[32rem] sm:w-[32rem] rounded-lg p-4 shadow-lg">
+			<div class="mb-4 flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+				<div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+					<span class="text-sm">Sort by:</span>
+					<Select.Root type="single" name="sort-field" bind:value={sortField}>
+						<Select.Trigger class="w-full sm:w-[180px]">
+							{sortOptions.find((opt) => opt.value === sortField)?.label || 'Select field...'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each sortOptions as option}
+								<Select.Item value={option.value} label={option.label}>
+									{option.label}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 
-				<span class="text-sm">Order:</span>
-				<Select.Root type="single" name="sort-order" bind:value={sortOrder}>
-					<Select.Trigger class="w-[180px]">
-						{sortField === 'created_at'
-							? sortDirectionsCreatedAt.find((dir) => dir.value === sortOrder)?.label
-							: sortDirections.find((dir) => dir.value === sortOrder)?.label}
-					</Select.Trigger>
-					<Select.Content>
-						{#each sortField === 'created_at' ? sortDirectionsCreatedAt : sortDirections as direction}
-							<Select.Item value={direction.value} label={direction.label}>
-								{direction.label}
-							</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+					<span class="text-sm">Order:</span>
+					<Select.Root type="single" name="sort-order" bind:value={sortOrder}>
+						<Select.Trigger class="w-full sm:w-[180px]">
+							{sortField === 'created_at'
+								? sortDirectionsCreatedAt.find((dir) => dir.value === sortOrder)?.label
+								: sortDirections.find((dir) => dir.value === sortOrder)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each sortField === 'created_at' ? sortDirectionsCreatedAt : sortDirections as direction}
+								<Select.Item value={direction.value} label={direction.label}>
+									{direction.label}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 			</div>
 
 			<Separator class="my-4" />

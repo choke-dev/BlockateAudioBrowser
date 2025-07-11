@@ -71,7 +71,7 @@
                 </Button>
 	        {/snippet}
         </Popover.Trigger>
-        <Popover.Content class="p-4 rounded-lg shadow-lg w-[32rem]">
+        <Popover.Content class="p-4 rounded-lg shadow-lg w-[90vw] max-w-[32rem] sm:w-[32rem]">
             {#if filters.length === 0}
                 <div>
                     <div class="flex-1">
@@ -82,66 +82,71 @@
             {/if}
 
             {#each filters as filter, index}
-                <div class="flex items-center space-x-2 mb-2">
-                    <!-- Dropdown for filter field -->
-                    <Select.Root
-                        type="single"
-                        name={`filter-${index}`}
-                        bind:value={filters[index].label}
-                    >
-                        <Select.Trigger class="w-[180px]">
-                            {filters[index].label
-                                ? filters[index].label
-                                : "Select a filter..."}
-                        </Select.Trigger>
-                        <Select.Content>
-                            {#each availableFilters as availableFilter}
-                                <Select.Item
-                                    value={availableFilter.label}
-                                    label={availableFilter.label}
-                                    onclick={() => {
-                                        filters[index].value = availableFilter.value;
-                                    }}
-                                >
-                                    {availableFilter.label}
-                                </Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
+                <div class="mb-4 sm:mb-2">
+                    <div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                        <!-- Dropdown for filter field -->
+                        <Select.Root
+                            type="single"
+                            name={`filter-${index}`}
+                            bind:value={filters[index].label}
+                        >
+                            <Select.Trigger class="w-full sm:w-[180px]">
+                                {filters[index].label
+                                    ? filters[index].label
+                                    : "Select a filter..."}
+                            </Select.Trigger>
+                            <Select.Content>
+                                {#each availableFilters as availableFilter}
+                                    <Select.Item
+                                        value={availableFilter.label}
+                                        label={availableFilter.label}
+                                        onclick={() => {
+                                            filters[index].value = availableFilter.value;
+                                        }}
+                                    >
+                                        {availableFilter.label}
+                                    </Select.Item>
+                                {/each}
+                            </Select.Content>
+                        </Select.Root>
 
-                    <!-- Input for filter value -->
-                    <Input
-                        type="text"
-                        class="border rounded pl-3 flex-1"
-                        bind:value={filters[index].inputValue}
-                        placeholder="Enter value"
-                        onkeydown={(e) => {
-                            if (e.key === "Enter") {
-                                applyFilter();
-                            }
-                        }}
-                    />
+                        <!-- Input and Remove button container for mobile -->
+                        <div class="flex space-x-2 sm:contents">
+                            <!-- Input for filter value -->
+                            <Input
+                                type="text"
+                                class="border rounded pl-3 flex-1"
+                                bind:value={filters[index].inputValue}
+                                placeholder="Enter value"
+                                onkeydown={(e) => {
+                                    if (e.key === "Enter") {
+                                        applyFilter();
+                                    }
+                                }}
+                            />
 
-                    <!-- Remove filter button -->
-                    <Button
-                        class="text-red-500 hover:bg-transparent hover:text-accent-foreground"
-                        variant="ghost"
-                        size="icon"
-                        onclick={() => removeFilter(index)}
-                    >
-                        <LucideX />
-                    </Button>
+                            <!-- Remove filter button -->
+                            <Button
+                                class="text-red-500 hover:bg-transparent hover:text-accent-foreground flex-shrink-0"
+                                variant="ghost"
+                                size="icon"
+                                onclick={() => removeFilter(index)}
+                            >
+                                <LucideX />
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             {/each}
 
-            <div class="flex items-center space-x-2 mt-4">
+            <div class="flex flex-col space-y-2 mt-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
                 <span class="text-sm">Filters must match:</span>
                 <Select.Root
                     type="single"
                     name="filter-type"
                     bind:value={filterType}
                 >
-                    <Select.Trigger class="w-[180px]">
+                    <Select.Trigger class="w-full sm:w-[180px]">
                         {filterType === "or" ? "any filter (OR)" : "all filters (AND)"}
                     </Select.Trigger>
                     <Select.Content>
