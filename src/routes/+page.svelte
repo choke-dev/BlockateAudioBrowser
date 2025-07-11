@@ -7,6 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { z } from 'zod';
   import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
   import { readSearchParams, updateSearchParams, type FilterData, type SortData } from '$lib/utils/urlParams';
 
   // API Response types
@@ -219,10 +220,14 @@
 
   function handleFiltersUpdate(filterData: FilterData) {
     appliedFilters = filterData;
+    currentPage = 1; // Reset to first page when filters change
+    performSearch();
   }
 
   function handleSortUpdate(sortData: SortData | null) {
     appliedSort = sortData;
+    currentPage = 1; // Reset to first page when sort changes
+    performSearch();
   }
 
   function handlePageChange(page: number) {
@@ -239,28 +244,20 @@
     }
   }
 
-  // Watch for filter/sort changes
-  $effect(() => {
-    if (initialStateLoaded && (appliedFilters !== null || appliedSort !== null)) {
-      currentPage = 1; // Reset to first page when filters/sort change
+  // Initialize on mount
+  onMount(() => {
+    if (browser) {
+      loadInitialState();
+      hasPerformedInitialSearch = true;
       performSearch();
     }
   });
 
-  // Watch for state changes to update URL
+
+  // Watch for state changes to update URL (but not during pagination)
   $effect(() => {
     if (initialStateLoaded) {
       updateUrlParams();
-    }
-  });
-
-  // Initialize with URL parameters on mount
-  $effect(() => {
-    if (browser && !hasPerformedInitialSearch && !isLoading) {
-      loadInitialState();
-      hasPerformedInitialSearch = true;
-      
-      performSearch();
     }
   });
 </script>
