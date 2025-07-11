@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
-import { db } from './db/index.js';
-import { users, sessions } from './db/schema.js';
+import { db } from './db/index';
+import { users, sessions } from './db/schema';
 import { eq, lt } from 'drizzle-orm';
 
 interface User {

@@ -1,6 +1,6 @@
 import { randomBytes, createHash } from 'crypto';
-import { db } from './db/index.js';
-import { users, oauthTokens } from './db/schema.js';
+import { db } from './db/index';
+import { users, oauthTokens } from './db/schema';
 import { eq, and } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 

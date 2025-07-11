@@ -1,9 +1,9 @@
 import { AUDIO_FILE_PROXY_AUTH } from '$env/static/private';
-import { db } from '$lib/server/db/index.js';
-import { audios } from '$lib/server/db/schema.js';
+import { db } from '$lib/server/db/index';
+import { audios } from '$lib/server/db/schema';
 import { checkAudioUrls, getAudios, uploadAudio } from '$lib/server/JukeHostAPI';
 import { eq } from 'drizzle-orm';
-import type { RequestHandler } from './$types.js';
+import type { RequestHandler } from './$types';
 import schema from './schema';
 
 const previewHandler: RequestHandler = async (event) => {
