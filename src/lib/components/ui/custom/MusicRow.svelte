@@ -3,6 +3,7 @@
   import ProgressBar from './ProgressBar.svelte';
   import IcRoundPlayArrow from '~icons/ic/round-play-arrow';
   import IcRoundPause from '~icons/ic/round-pause';
+  import IcRoundContentCopy from '~icons/ic/round-content-copy';
   import IconTablerChevronDown from '~icons/tabler/chevron-down';
   import IconTablerMusic from '~icons/tabler/music';
 import { slide } from 'svelte/transition';
@@ -304,6 +305,14 @@ import { audioCache } from '$lib/stores/audioCacheStore';
 
   function stopPropagation<T extends Event>(handler: (event: T) => void) {
     return (e: T) => { e.stopPropagation(); handler(e); };
+  }
+
+  async function copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
   }
 
   const duration = $derived(audioDuration || track.duration || parseDuration(track.length));

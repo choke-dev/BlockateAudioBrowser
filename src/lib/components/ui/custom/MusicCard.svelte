@@ -3,6 +3,7 @@
   import ProgressBar from './ProgressBar.svelte';
   import IcRoundPlayArrow from '~icons/ic/round-play-arrow';
   import IcRoundPause from '~icons/ic/round-pause';
+  import IcRoundContentCopy from '~icons/ic/round-content-copy';
   import { slide } from 'svelte/transition';
   import { playingTrackId } from '$lib/stores/playingTrackStore';
   import { audioCache } from '$lib/stores/audioCacheStore';
@@ -279,6 +280,14 @@
     return minutes * 60 + seconds;
   }
 
+  async function copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  }
+
   const duration = $derived(audioDuration || track.duration || parseDuration(track.length));
 
   // Cleanup audio element when component is destroyed
@@ -307,7 +316,21 @@
   <div class="flex items-start justify-between gap-3 mb-3">
     <div class="flex-1 min-w-0">
       <h3 class="font-medium text-foreground truncate text-base mb-1">{track.name}</h3>
-      <p class="text-sm text-muted-foreground truncate">ID: {track.id}</p>
+      <div class="flex items-center gap-2">
+        <p class="text-sm text-muted-foreground truncate">ID: {track.id}</p>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-6 w-6 text-muted-foreground hover:text-foreground flex-shrink-0"
+          onclick={(e) => {
+            e.stopPropagation();
+            copyToClipboard(track.id);
+          }}
+          title="Copy ID"
+        >
+          <IcRoundContentCopy class="h-3 w-3" />
+        </Button>
+      </div>
     </div>
     
     <!-- Play Button -->
