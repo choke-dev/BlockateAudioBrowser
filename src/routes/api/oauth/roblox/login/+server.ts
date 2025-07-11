@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { robloxOAuth } from '$lib/server/oauth.js';
+import { robloxOAuth } from '$lib/server/oauth';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from '@sveltejs/kit';
 
@@ -28,9 +28,10 @@ export const POST: RequestHandler = async ({ cookies, url }) => {
       path: '/'
     });
     
-    // Generate authorization URL with current hostname
+    // Generate authorization URL with current hostname and protocol
     const hostname = url.hostname + (url.port ? `:${url.port}` : '');
-    const authUrl = robloxOAuth.getAuthorizationUrl(state, codeChallenge, hostname);
+    const protocol = url.protocol.replace(':', '');
+    const authUrl = robloxOAuth.getAuthorizationUrl(state, codeChallenge, hostname, protocol);
     
     return json({
       success: true,

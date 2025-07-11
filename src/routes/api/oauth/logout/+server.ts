@@ -1,6 +1,6 @@
 import { json, redirect } from '@sveltejs/kit';
-import { sessionService } from '$lib/server/session.js';
-import { robloxOAuth } from '$lib/server/oauth.js';
+import { sessionService } from '$lib/server/session';
+import { robloxOAuth } from '$lib/server/oauth';
 import type { RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ cookies }) => {

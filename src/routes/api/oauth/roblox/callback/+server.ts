@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
-import { robloxOAuth } from '$lib/server/oauth.js';
-import { sessionService } from '$lib/server/session.js';
+import { robloxOAuth } from '$lib/server/oauth';
+import { sessionService } from '$lib/server/session';
 import type { RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
@@ -37,7 +37,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     
     // Exchange code for tokens
     const hostname = url.hostname + (url.port ? `:${url.port}` : '');
-    const tokens = await robloxOAuth.exchangeCodeForTokens(code, codeVerifier, hostname);
+    const protocol = url.protocol.replace(':', '');
+    const tokens = await robloxOAuth.exchangeCodeForTokens(code, codeVerifier, hostname, protocol);
     
     // Get user info from Roblox
     const userInfo = await robloxOAuth.getUserInfo(tokens.access_token);

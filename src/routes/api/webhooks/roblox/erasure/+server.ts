@@ -1,10 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { prisma } from '$lib/server/db';
+import { db } from '$lib/server/db/index';
 import { robloxOAuth } from '$lib/server/oauth';
-import type { Prisma } from '@prisma/client';
+import { users, sessions, oauthTokens, whitelistRequests } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import { createHmac } from 'crypto';
-import { ERASURE_WEBHOOK_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 interface RobloxErasureWebhookPayload {
 	NotificationId: string;
@@ -82,7 +83,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const body = await request.text();
 		
 		// Verify the signature
-		if (!verifySignature(signature, '', body, ERASURE_WEBHOOK_SECRET)) {
+		if (!verifySignature(signature, '', body, env.ERASURE_WEBHOOK_SECRET || '')) {
 			console.error('Invalid webhook signature');
 			return json(
 				{ error: 'Invalid signature' },
@@ -112,17 +113,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		// Find the user in our database by Roblox user ID
-		const user = await prisma.user.findUnique({
-			where: {
-				robloxId: robloxUserId.toString()
-			},
-			include: {
-				sessions: true,
-				oauthTokens: true
-			}
-		});
+		const userResult = await db
+			.select()
+			.from(users)
+			.where(eq(users.robloxId, robloxUserId.toString()))
+			.limit(1);
 
-		if (!user) {
+		if (userResult.length === 0) {
 			console.log(`User with Roblox ID ${robloxUserId} not found in database`);
 			// Still return success - the user doesn't exist in our system
 			return json({
@@ -132,10 +129,18 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 		}
 
+		const user = userResult[0];
+
+		// Get user's OAuth tokens
+		const userTokens = await db
+			.select()
+			.from(oauthTokens)
+			.where(eq(oauthTokens.userId, user.id));
+
 		console.log(`Found user ${user.id} (${user.username}) for erasure`);
 
 		// Revoke all OAuth tokens with Roblox before deletion
-		for (const token of user.oauthTokens) {
+		for (const token of userTokens) {
 			if (token.refreshToken) {
 				try {
 					await robloxOAuth.revokeRefreshToken(token.refreshToken);
@@ -148,31 +153,22 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Delete all user data in a transaction
-		await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+		await db.transaction(async (tx) => {
 			// Delete OAuth tokens
-			await tx.oAuthToken.deleteMany({
-				where: { userId: user.id }
-			});
+			await tx.delete(oauthTokens)
+				.where(eq(oauthTokens.userId, user.id));
 
 			// Delete sessions
-			await tx.session.deleteMany({
-				where: { userId: user.id }
-			});
-
-			// Delete user roles
-			await tx.userRole.deleteMany({
-				where: { userId: user.id }
-			});
+			await tx.delete(sessions)
+				.where(eq(sessions.userId, user.id));
 
 			// Delete whitelist requests
-			await tx.whitelistRequest.deleteMany({
-				where: { userId: user.id }
-			});
+			await tx.delete(whitelistRequests)
+				.where(eq(whitelistRequests.userId, user.id));
 
 			// Delete the user record
-			await tx.user.delete({
-				where: { id: user.id }
-			});
+			await tx.delete(users)
+				.where(eq(users.id, user.id));
 		});
 
 		console.log(`Successfully deleted all data for user ${user.id} (Roblox ID: ${robloxUserId})`);
