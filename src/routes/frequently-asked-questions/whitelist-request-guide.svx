@@ -87,8 +87,7 @@ title: How do I get an audio ID whitelisted in Blockate?
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
    <div class="prose dark:prose-invert max-w-none">
       <ol>
-         <li>Navigate to the <strong>Blockate Audio Browser</strong> website.</li>
-         <li>Click on the <strong>Request Audio Whitelist</strong> button or form.</li>
+         <li>At the top of any page, click <strong>Request Whitelist</strong>.</li>
          <li>Fill out the whitelist request form with the following information:
             <ul>
                <li><strong>Audio ID</strong>: Your audio's asset ID (e.g. 123456789)</li>
