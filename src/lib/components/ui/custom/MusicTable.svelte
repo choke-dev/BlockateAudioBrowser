@@ -72,7 +72,7 @@
 
 <div class="w-full bg-card rounded-lg">
   <!-- Table Header -->
-  <div class="grid grid-cols-[48px_120px_1fr_1fr] gap-4 items-center p-4 border-b border-border bg-background text-sm font-medium text-muted-foreground uppercase tracking-wide rounded-t-lg">
+  <div class="grid grid-cols-[48px_132px_1fr_1fr] gap-4 items-center p-4 border-b border-border bg-background text-sm font-medium text-muted-foreground uppercase tracking-wide rounded-t-lg">
     <div></div>
     <div>ID</div>
     <div>NAME</div>

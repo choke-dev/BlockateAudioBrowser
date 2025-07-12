@@ -347,7 +347,7 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   aria-label="Expand track details for {track.name} by {track.creator}"
 >
   <!-- Regular track row -->
-  <div class="grid grid-cols-[48px_120px_1fr_1fr] gap-4 items-center px-4 py-1">
+  <div class="grid grid-cols-[48px_132px_1fr_1fr] gap-4 items-center px-4 py-1">
     {#if track.isPreviewable}
       <div class="relative ml-2">
         <Button
