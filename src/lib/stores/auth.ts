@@ -193,6 +193,15 @@ function createAuthStore() {
      */
     setLoading(loading: boolean) {
       update(state => ({ ...state, loading }));
+    },
+
+    /**
+     * Get current state (for internal use)
+     */
+    getCurrentState(): AuthState {
+      let currentState: AuthState = initialState;
+      subscribe(state => { currentState = state; })();
+      return currentState;
     }
   };
 }

@@ -3,6 +3,8 @@
   import { updated } from '$app/state';
   import Header from '$lib/components/ui/custom/Header.svelte';
   import { audioCache } from '$lib/stores/audioCacheStore';
+  import { auth } from '$lib/stores/auth.js';
+  import { notifications } from '$lib/stores/notifications.js';
   import { onDestroy, onMount } from 'svelte';
   import '../app.css';
 
@@ -28,6 +30,12 @@
     let versionCheckInterval: NodeJS.Timeout;
     // Reload immediately if outdated on first load
     onMount(async () => {
+      // Initialize auth system
+      await auth.init();
+      
+      // Initialize notification system
+      await notifications.init();
+      
       if (await updated.check()) {
         location.reload();
       }

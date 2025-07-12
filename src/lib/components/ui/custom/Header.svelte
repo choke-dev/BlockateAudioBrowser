@@ -3,6 +3,7 @@
   import AuthButton from './AuthButton.svelte';
   import WhitelistRequestForm from './WhitelistRequestForm.svelte';
   import WhitelistRequestsView from './WhitelistRequestsView.svelte';
+  import NotificationSettings from './NotificationSettings.svelte';
   import { auth } from '$lib/stores/auth.js';
 </script>
 
@@ -17,6 +18,7 @@
       <div class="flex items-center">
         <WhitelistRequestForm triggerClass="mr-2" />
         <WhitelistRequestsView triggerClass="mr-2" />
+        <NotificationSettings triggerClass="mr-2" />
       </div>
     {/if}
     <AuthButton />
