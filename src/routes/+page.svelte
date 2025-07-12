@@ -1,14 +1,18 @@
 <script lang="ts">
-  import SearchBar from '$lib/components/ui/custom/SearchBar.svelte';
-  import FilterButton from '$lib/components/ui/custom/FilterButton.svelte';
-  import MusicGrid from '$lib/components/ui/custom/MusicGrid.svelte';
-  import SortButton from '$lib/components/ui/custom/SortButton.svelte';
-  import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
   import { z } from 'zod';
-  import { browser } from '$app/environment';
+
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+
+  import { playingTrackId } from '$lib/stores/playingTrackStore';
   import { readSearchParams, updateSearchParams, type FilterData, type SortData } from '$lib/utils/urlParams';
+  
+  import { Input } from '$lib/components/ui/input';
+  import { Button } from '$lib/components/ui/button';
+  import MusicGrid from '$lib/components/ui/custom/MusicGrid.svelte';
+  import SearchBar from '$lib/components/ui/custom/SearchBar.svelte';
+  import SortButton from '$lib/components/ui/custom/SortButton.svelte';
+  import FilterButton from '$lib/components/ui/custom/FilterButton.svelte';
 
   // API Response types
   interface AudioTrack {
@@ -61,7 +65,7 @@
   let currentTrack = $state<MusicTrack | null>(null);
   let isPlaying = $state(false);
   let currentTime = $state(0);
-  
+
   // Loading and error states
   let isLoading = $state(false);
   let error = $state<string | null>(null);
@@ -72,14 +76,6 @@
 
   // Constants
   const RESULTS_PER_PAGE = 25;
-
-  // Format duration from seconds to MM:SS
-  function formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-
 
   // Convert API response to UI format
   function convertToMusicTrack(apiTrack: AudioTrack): MusicTrack {
@@ -101,8 +97,10 @@
       const validatedQuery = SearchQuerySchema.parse(searchQuery);
       const validatedPage = PageSchema.parse(currentPage);
       
+      isPlaying = false;
       isLoading = true;
       error = null;
+      playingTrackId.set(null);
 
       // Build request body
       const requestBody = {

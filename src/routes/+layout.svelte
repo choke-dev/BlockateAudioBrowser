@@ -28,7 +28,6 @@
     });
 
     let versionCheckInterval: NodeJS.Timeout;
-    // Reload immediately if outdated on first load
     onMount(async () => {
       // Initialize auth system
       await auth.init();
