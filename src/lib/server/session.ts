@@ -208,3 +208,25 @@ class SessionService {
 }
 
 export const sessionService = new SessionService();
+
+/**
+ * Helper function to get session with user data from cookies
+ */
+export async function getSessionWithUser(cookies: any): Promise<{ user: User; session: Session } | null> {
+  const sessionId = cookies.get('session');
+  if (!sessionId) {
+    return null;
+  }
+
+  const user = await sessionService.getUserBySession(sessionId);
+  if (!user) {
+    return null;
+  }
+
+  const session = await sessionService.getSession(sessionId);
+  if (!session) {
+    return null;
+  }
+
+  return { user, session };
+}

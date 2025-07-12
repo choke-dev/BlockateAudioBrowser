@@ -109,10 +109,9 @@
       
       <div class="flex gap-2">
         <Button
-          size="sm"
-          variant="outline"
-          onclick={handleLogout}
-          disabled={isLoggingOut}
+        onclick={handleLogout}
+        disabled={isLoggingOut}
+        variant="outline"
         >
           {isLoggingOut ? 'Logging out...' : 'Logout'}
         </Button>
