@@ -104,6 +104,15 @@
         <Dialog.Title>Request Audio Whitelist</Dialog.Title>
         <Dialog.Description>
           Submits a request to whitelist an audio ID for use in Blockate
+          <br />
+          Need help? View the 
+          <a
+            href="/frequently-asked-questions/whitelist-request-guide"
+            class="text-white hover:text-gray-300 underline text-sm"
+            target="_blank"
+          >
+            Whitelist Request Guide
+          </a>!
         </Dialog.Description>
       </Dialog.Header>
 

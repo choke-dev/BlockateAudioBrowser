@@ -1,0 +1,124 @@
+---
+title: How do I get an audio ID whitelisted in Blockate?
+---
+
+<script>
+   import { page } from '$app/stores';
+   import { Button } from "$lib/components/ui/button";
+   import * as Alert from '$lib/components/ui/alert/index.js';
+
+   import LucideInfo from '~icons/lucide/info';
+   import MaterialSymbolsCheckCircleRounded from '~icons/material-symbols/check-circle-rounded';
+
+   const rootUrl = $page.url.origin;
+</script>
+
+## 1. Download & Upload Your Audio
+
+1. Download the audio file you wish to request whitelisting for
+2. Go to **Roblox** and upload the audio:
+   - **Create** → **Creations** → **Development Items** → **Audio** → **Upload Asset** 
+   <br>
+   <Button variant="outline" href="https://create.roblox.com/dashboard/creations/upload?assetType=Audio" target="_blank">Click me to go directly to the audio upload page!</Button>
+
+<Alert.Root variant="info" class="w-full max-w-none not-prose">
+   <LucideInfo />
+   <Alert.Title>Note</Alert.Title>
+   <Alert.Description>
+      <div class="space-y-3">
+         <div>
+            If roblox moderation approves the audio, you will see a white speaker icon next to the audio name.
+            <div class="mt-2">
+               <img class="max-w-xs rounded border" src="https://i.ibb.co/9kMBfQxH/image.png" alt="Audio icon with speaker symbol labeled 'Ember'" />
+            </div>
+         </div>
+         <div>
+            Similarly, if the audio gets rejected, a prohibition sign (🚫) will be visible next to the audio name and the description will read "(Removed for violations of Roblox Terms of Use)"
+            <div class="mt-2">
+               <img class="max-w-xs rounded border" src="https://i.ibb.co/0jv2bkHr/image2.png" alt="Prohibition symbol (circle with diagonal line) labeled 'Shark Water'" />
+            </div>
+         </div>
+      </div>
+   </Alert.Description>
+</Alert.Root>
+
+---
+
+## 2. Send **[BMusicUploader](https://www.roblox.com/users/4572614730/profile)** a friend request on Roblox
+1. In Roblox, search for **`BMusicUploader`**.  
+2. Send and accept the friend request.
+
+---
+## 3. Grant "Use" Permissions to the Audio
+1. Go to your **Audio Asset Page** → **Permissions**.
+2. Under the **Collaborators** tab, Add **BMusicUploader** as a **collaborator** with the **Use** permission.
+3. Click **Done**
+
+<div class="not-prose space-y-4 mt-4">
+   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div>
+         <p class="text-sm font-medium mb-2">Step 1: Navigate to Permissions</p>
+         <img class="w-full object-contain object-left-top" src="https://i.ibb.co/bMvPRbch/image3.png" alt="Navigate to audio permissions page" />
+      </div>
+      <div>
+         <p class="text-sm font-medium mb-2">Step 2: Configure Collaborators</p>
+         <img class="w-full object-contain object-left-top" src="https://i.ibb.co/ZRKgBgkP/image4.png" alt="Configure collaborators settings" />
+      </div>
+   </div>
+   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+         <p class="text-sm font-medium mb-2">Step 3: Search for BMusicUploader</p>
+         <img class="w-full object-contain object-left-top" src="https://i.ibb.co/HLMCfc7b/image5.png" alt="Search for BMusicUploader" />
+      </div>
+      <div>
+         <p class="text-sm font-medium mb-2">Step 4: Add Collaborator</p>
+         <img class="w-full object-contain object-left-top" src="https://i.ibb.co/WvBJrN4K/image6.png" alt="Add BMusicUploader as collaborator" />
+      </div>
+   </div>
+   <br>
+   Upon clicking <b>Done</b>, a success notification should appear.
+   <img class="" src="https://i.ibb.co/k20KwYZ9/image7.png" alt="Success notification" />
+</div>
+
+---
+
+## 4. Submit Your Whitelist Request
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+   <div class="prose dark:prose-invert max-w-none">
+      <ol>
+         <li>Navigate to the <strong>Blockate Audio Browser</strong> website.</li>
+         <li>Click on the <strong>Request Audio Whitelist</strong> button or form.</li>
+         <li>Fill out the whitelist request form with the following information:
+            <ul>
+               <li><strong>Audio ID</strong>: Your audio's asset ID (e.g. 123456789)</li>
+               <li><strong>Audio Name</strong>: The exact audio title (e.g. Life Will Change)</li>
+               <li><strong>Audio Category</strong>: Where the audio came from or its category (e.g. Persona 5, Sound Effects (SFX))</li>
+               <li><strong>Is Private</strong> <em>(optional)</em>: Check this box if this is an original/private track (will also hide it from the <a href="{rootUrl}">Blockate Audio Browser</a>'s search results)</li>
+            </ul>
+         </li>
+         <li>Click <strong>Submit Request</strong> to send your whitelist request for review.</li>
+      </ol>
+      
+      <p><strong>Example:</strong></p>
+      <ul>
+         <li>Audio ID: 123456789</li>
+         <li>Audio Name: Life Will Change</li>
+         <li>Audio Category: Persona 5</li>
+         <li>Is Private: <em>(unchecked)</em></li>
+      </ul>
+   </div>
+   <div>
+      <img class="w-full rounded border" src="https://i.ibb.co/r276YPRM/brave-duu-AE0-Hp-YV.png" alt="Whitelist request form showing Audio ID, Audio Name, Audio Category fields and Is Private checkbox"/>
+   </div>
+</div>
+
+---
+
+<Alert.Root variant="success" class="w-full max-w-none not-prose">
+   <MaterialSymbolsCheckCircleRounded class="size-lg" />
+   <Alert.Title>That's it!</Alert.Title>
+   <Alert.Description>
+      Once you submit your whitelist request, you will usually receive an immediate response; if not, it will be reviewed by a moderator within 24 hours.
+   </Alert.Description>
+</Alert.Root>
