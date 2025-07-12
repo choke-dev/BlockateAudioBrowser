@@ -7,20 +7,22 @@
   import { auth } from '$lib/stores/auth.js';
 </script>
 
-<header class="flex items-center justify-between border-b px-8 py-2">
+<header class="flex items-center justify-between border-b px-4 py-2 md:px-8">
   <div>
     <a href="/">
-      <img src="/audiodb.png" class="size-10" alt="Blockate Audio Browser Logo" />
+      <img src="/audiodb.png" class="size-8 md:size-10" alt="Blockate Audio Browser Logo" />
     </a>
   </div>
-  <div class="flex items-center gap-2 divide-x-2">
+  <div class="flex items-center gap-1 md:gap-2">
     {#if $auth.authenticated}
-      <div class="flex items-center">
-        <WhitelistRequestForm triggerClass="mr-2" />
-        <WhitelistRequestsView triggerClass="mr-2" />
-        <NotificationSettings triggerClass="mr-2" />
+      <div class="flex items-center gap-1 md:gap-2">
+        <WhitelistRequestForm triggerClass="text-xs md:text-sm" />
+        <WhitelistRequestsView triggerClass="text-xs md:text-sm" />
+        <NotificationSettings triggerClass="" />
       </div>
     {/if}
-    <AuthButton />
+    <div class="pl-1 md:pl-2 flex items-center">
+      <AuthButton />
+    </div>
   </div>
 </header>

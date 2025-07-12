@@ -112,9 +112,9 @@
 {#if $auth.authenticated}
   <Dialog.Root bind:open>
     <Dialog.Trigger>
-      <Button variant="outline" class={triggerClass}>
+      <Button variant="outline" class={triggerClass} size="sm">
         <LucideList class="size-4" />
-        My Requests
+        <span class="hidden sm:inline ml-2">My Requests</span>
       </Button>
     </Dialog.Trigger>
     <Dialog.Content class="sm:max-w-[600px] max-h-[80vh] overflow-hidden">

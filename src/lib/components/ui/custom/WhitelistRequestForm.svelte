@@ -94,9 +94,9 @@
 {#if $auth.authenticated}
   <Dialog.Root bind:open>
     <Dialog.Trigger>
-      <Button variant="outline" class={triggerClass}>
+      <Button variant="outline" class={triggerClass} size="sm">
         <LucidePlus class="size-4" />
-        Request Whitelist
+        <span class="hidden sm:inline ml-2">Request Whitelist</span>
       </Button>
     </Dialog.Trigger>
     <Dialog.Content class="max-w-xl">
