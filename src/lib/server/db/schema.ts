@@ -14,7 +14,7 @@ export const users = pgTable("users", {
 	updatedAt: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
 }, (table) => [
 	uniqueIndex("users_robloxId_key").using("btree", table.robloxId.asc().nullsLast().op("text_ops")),
-]);
+]).enableRLS();
 
 export const sessions = pgTable("sessions", {
 	id: text().primaryKey().notNull(),
@@ -27,7 +27,7 @@ export const sessions = pgTable("sessions", {
 			foreignColumns: [users.id],
 			name: "sessions_userId_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
-]);
+]).enableRLS();
 
 export const oauthTokens = pgTable("oauth_tokens", {
 	id: text().primaryKey().notNull(),
@@ -46,7 +46,7 @@ export const oauthTokens = pgTable("oauth_tokens", {
 			foreignColumns: [users.id],
 			name: "oauth_tokens_userId_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
-]);
+]).enableRLS();
 
 export const audios = pgTable("audios", {
 	id: bigint({ mode: "bigint" }).primaryKey().notNull(),
@@ -62,7 +62,7 @@ export const audios = pgTable("audios", {
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
 	pgPolicy("public_read_only", { as: "permissive", for: "select", to: ["public"], using: sql`true` }),
-]);
+]).enableRLS();
 
 export const whitelistRequests = pgTable("whitelist_requests", {
 	status: whitelistRequestStatus().default('PENDING').notNull(),
@@ -76,6 +76,7 @@ export const whitelistRequests = pgTable("whitelist_requests", {
 	requester: jsonb().notNull(),
 	userId: text().notNull(),
 	acknowledged: boolean().default(false).notNull(),
+	userNotified: boolean("user_notified").default(false).notNull(),
 	audioUrl: text("audio_url").notNull(),
 }, (table) => [
 	foreignKey({
@@ -83,7 +84,7 @@ export const whitelistRequests = pgTable("whitelist_requests", {
 			foreignColumns: [users.id],
 			name: "whitelist_requests_userId_fkey"
 		}).onUpdate("cascade").onDelete("restrict"),
-]);
+]).enableRLS();
 
 export const audio = pgTable("Audio", {
 	id: text().primaryKey().notNull(),
