@@ -4,13 +4,16 @@ title: How do I get an audio ID whitelisted in Blockate?
 
 <script>
    import { page } from '$app/stores';
+   import { auth } from '$lib/stores/auth';
    import { Button } from "$lib/components/ui/button";
    import * as Alert from '$lib/components/ui/alert/index.js';
 
    import LucideInfo from '~icons/lucide/info';
+   import LucideTriangleAlert from '~icons/lucide/triangle-alert';
    import MaterialSymbolsCheckCircleRounded from '~icons/material-symbols/check-circle-rounded';
 
    const rootUrl = $page.url.origin;
+   const isAuthenticated = auth.isAuthenticated && auth.user;
 </script>
 
 ## 1. Download & Upload Your Audio
@@ -81,6 +84,18 @@ title: How do I get an audio ID whitelisted in Blockate?
 </div>
 
 ---
+
+{#if !$auth.loading && (!$auth.authenticated || !$auth.user)}
+   <Alert.Root variant="warning" class="w-full max-w-none not-prose">
+      <LucideTriangleAlert />
+      <Alert.Title>Heads up!</Alert.Title>
+      <Alert.Description>
+         <div class="space-y-3">
+            <p>You'll need to login with Roblox to complete this step.</p>
+         </div>
+      </Alert.Description>
+   </Alert.Root>
+{/if} 
 
 ## 4. Submit Your Whitelist Request
 
