@@ -58,6 +58,36 @@
     onSeek(newTime);
   }
 
+  // Touch event handlers for mobile support
+  function handleTouchStart(event: TouchEvent) {
+    if (!onSeek || duration === 0) return;
+    
+    // Prevent default to avoid scrolling and other touch behaviors
+    event.preventDefault();
+    
+    isDragging = true;
+    const touch = event.touches[0];
+    const newTime = getTimeFromPosition(touch.clientX);
+    onSeek(newTime);
+
+    function handleTouchMove(e: TouchEvent) {
+      if (!isDragging || !onSeek) return;
+      e.preventDefault(); // Prevent scrolling while dragging
+      const touch = e.touches[0];
+      const newTime = getTimeFromPosition(touch.clientX);
+      onSeek(newTime);
+    }
+
+    function handleTouchEnd() {
+      isDragging = false;
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    }
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+  }
+
   const progress = $derived(duration > 0 ? (currentTime / duration) * 100 : 0);
 </script>
 
@@ -73,6 +103,7 @@
   onmousedown={handleMouseDown}
   onmouseenter={() => isHovering = true}
   onmouseleave={() => isHovering = false}
+  ontouchstart={handleTouchStart}
   role="slider"
   tabindex="0"
   aria-valuemin="0"
