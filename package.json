@@ -62,6 +62,7 @@
     ]
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.5",
     "@urbanzoo/remove-accents": "^1.0.2",
     "dotenv": "^17.1.0",
     "drizzle-orm": "^0.40.1",
