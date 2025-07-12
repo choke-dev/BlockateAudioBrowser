@@ -19,46 +19,33 @@
 
   // Initialize notification system when component mounts
   onMount(async () => {
-    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Component mounted, initializing notifications');
     await notifications.init();
 
     // Start listening for notifications if user is authenticated and notifications are enabled
     if ($auth.authenticated && $notifications.enabled) {
-      console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from onMount');
       whitelistNotificationService.startListening();
     }
   });
 
   // Reactive statement to handle auth state changes
   $effect(() => {
-    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Effect triggered:', {
-      authenticated: $auth.authenticated,
-      enabled: $notifications.enabled,
-      serviceStatus: whitelistNotificationService.getStatus()
-    });
-
     if ($auth.authenticated && $notifications.enabled) {
-      console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from effect');
       whitelistNotificationService.startListening();
     } else {
-      console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Stopping service from effect');
       whitelistNotificationService.stopListening();
     }
   });
 
   async function handleToggleNotifications() {
-    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] handleToggleNotifications called');
     isLoading = true;
     try {
       const newState = !$notifications.enabled;
       const success = await notifications.setEnabled(newState);
 
       if (success && newState) {
-        console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from handleToggleNotifications');
         // Start listening for notifications
         whitelistNotificationService.startListening();
       } else if (!newState) {
-        console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Stopping service from handleToggleNotifications');
         // Stop listening for notifications
         whitelistNotificationService.stopListening();
       }
@@ -70,12 +57,10 @@
   }
 
   async function handleRequestPermission() {
-    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] handleRequestPermission called');
     isLoading = true;
     try {
       const granted = await notifications.requestPermission();
       if (granted) {
-        console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from handleRequestPermission');
         whitelistNotificationService.startListening();
       }
     } catch (error) {
