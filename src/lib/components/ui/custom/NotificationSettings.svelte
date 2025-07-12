@@ -19,33 +19,46 @@
 
   // Initialize notification system when component mounts
   onMount(async () => {
+    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Component mounted, initializing notifications');
     await notifications.init();
-    
+
     // Start listening for notifications if user is authenticated and notifications are enabled
     if ($auth.authenticated && $notifications.enabled) {
+      console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from onMount');
       whitelistNotificationService.startListening();
     }
   });
 
   // Reactive statement to handle auth state changes
   $effect(() => {
+    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Effect triggered:', {
+      authenticated: $auth.authenticated,
+      enabled: $notifications.enabled,
+      serviceStatus: whitelistNotificationService.getStatus()
+    });
+
     if ($auth.authenticated && $notifications.enabled) {
+      console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from effect');
       whitelistNotificationService.startListening();
     } else {
+      console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Stopping service from effect');
       whitelistNotificationService.stopListening();
     }
   });
 
   async function handleToggleNotifications() {
+    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] handleToggleNotifications called');
     isLoading = true;
     try {
       const newState = !$notifications.enabled;
       const success = await notifications.setEnabled(newState);
-      
+
       if (success && newState) {
+        console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from handleToggleNotifications');
         // Start listening for notifications
         whitelistNotificationService.startListening();
       } else if (!newState) {
+        console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Stopping service from handleToggleNotifications');
         // Stop listening for notifications
         whitelistNotificationService.stopListening();
       }
@@ -57,10 +70,12 @@
   }
 
   async function handleRequestPermission() {
+    console.log('🔔 [NOTIFICATION SETTINGS DEBUG] handleRequestPermission called');
     isLoading = true;
     try {
       const granted = await notifications.requestPermission();
       if (granted) {
+        console.log('🔔 [NOTIFICATION SETTINGS DEBUG] Starting service from handleRequestPermission');
         whitelistNotificationService.startListening();
       }
     } catch (error) {
@@ -137,14 +152,16 @@
         {/if}
 
         {#if $unreadCount > 0}
-          <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+          <span
+            class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+          >
             {$unreadCount > 9 ? '9+' : $unreadCount}
           </span>
         {/if}
       </Button>
     </Dialog.Trigger>
-    
-    <Dialog.Content class="sm:max-w-[500px] max-h-[80vh] overflow-hidden">
+
+    <Dialog.Content class="max-h-[80vh] overflow-hidden sm:max-w-[500px]">
       <Dialog.Header>
         <Dialog.Title>Notification Settings</Dialog.Title>
         <Dialog.Description>
@@ -157,17 +174,25 @@
         {#if !$notificationsAvailable}
           <Alert.Root variant="warning">
             <Alert.Description>
-              Browser notifications are not supported in your current browser or you are not authenticated.
+              Browser notifications are not supported in your current browser or you are not
+              authenticated.
             </Alert.Description>
           </Alert.Root>
         {:else}
           <!-- Permission Status -->
           <div class="space-y-3">
             <h3 class="text-sm font-medium">Permission Status</h3>
-            <div class="flex items-center justify-between p-3 border rounded-lg">
+            {#if $notifications.permission.status === 'denied'}
+              <Alert.Root variant="error" class="mt-2">
+                <Alert.Description class="text-xs">
+                  Notifications are blocked. Please enable them in your browser settings.
+                </Alert.Description>
+              </Alert.Root>
+            {/if}
+            <div class="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p class="text-sm font-medium">Browser Notifications</p>
-                <p class="text-xs text-muted-foreground {getPermissionStatusColor()}">
+                <p class="text-muted-foreground text-xs {getPermissionStatusColor()}">
                   {getPermissionStatusText()}
                 </p>
               </div>
@@ -175,12 +200,6 @@
                 <Button size="sm" onclick={handleRequestPermission} disabled={isLoading}>
                   Request Permission
                 </Button>
-              {:else if $notifications.permission.status === 'denied'}
-                <Alert.Root variant="destructive" class="mt-2">
-                  <Alert.Description class="text-xs">
-                    Notifications are blocked. Please enable them in your browser settings.
-                  </Alert.Description>
-                </Alert.Root>
               {/if}
             </div>
           </div>
@@ -188,18 +207,18 @@
           <!-- Notification Toggle -->
           <div class="space-y-3">
             <h3 class="text-sm font-medium">Notification Settings</h3>
-            <div class="flex items-center space-x-3 p-3 border rounded-lg">
-              <Checkbox 
-                id="enable-notifications" 
+            <div class="flex items-center space-x-3 rounded-lg border p-3">
+              <Checkbox
+                id="enable-notifications"
                 checked={$notifications.enabled}
                 onCheckedChange={handleToggleNotifications}
                 disabled={isLoading || $notifications.permission.status !== 'granted'}
               />
               <div class="flex-1">
-                <label for="enable-notifications" class="text-sm font-medium cursor-pointer">
+                <label for="enable-notifications" class="cursor-pointer text-sm font-medium">
                   Enable Whitelist Notifications
                 </label>
-                <p class="text-xs text-muted-foreground">
+                <p class="text-muted-foreground text-xs">
                   Get notified when your whitelist requests are approved or rejected
                 </p>
               </div>
@@ -213,11 +232,11 @@
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-medium">Service Status</h3>
                 <Button size="sm" variant="outline" onclick={handleForceCheck} disabled={isLoading}>
-                  <LucideRefreshCw class="size-3 mr-1" />
+                  <LucideRefreshCw class="mr-1 size-3" />
                   Check Now
                 </Button>
               </div>
-              <div class="p-3 border rounded-lg bg-muted/50">
+              <div class="bg-muted/50 rounded-lg border p-3">
                 <div class="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span class="text-muted-foreground">Status:</span>
@@ -244,7 +263,9 @@
           {#if $notifications.notifications.length > 0}
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <h3 class="text-sm font-medium">Recent Notifications ({$notifications.notifications.length})</h3>
+                <h3 class="text-sm font-medium">
+                  Recent Notifications ({$notifications.notifications.length})
+                </h3>
                 <div class="space-x-2">
                   {#if $unreadCount > 0}
                     <Button size="sm" variant="outline" onclick={handleMarkAllRead}>
@@ -256,26 +277,32 @@
                   </Button>
                 </div>
               </div>
-              
-              <div class="max-h-48 overflow-y-auto space-y-2">
+
+              <div class="max-h-48 space-y-2 overflow-y-auto">
                 {#each $notifications.notifications.slice(0, 10) as notification (notification.id)}
-                  <div class="p-3 border rounded-lg {notification.read ? 'bg-muted/30' : 'bg-background'}">
+                  <div
+                    class="rounded-lg border p-3 {notification.read
+                      ? 'bg-muted/30'
+                      : 'bg-background'}"
+                  >
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <div class="flex items-center space-x-2">
                           <span class="text-sm font-medium">{notification.audioName}</span>
-                          <span class="px-2 py-1 rounded-full text-xs font-medium {
-                            notification.status === 'approved' 
-                              ? 'text-green-600 bg-green-100' 
-                              : 'text-red-600 bg-red-100'
-                          }">
-                            {notification.status.charAt(0).toUpperCase() + notification.status.slice(1)}
+                          <span
+                            class="rounded-full px-2 py-1 text-xs font-medium {notification.status ===
+                            'approved'
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-red-100 text-red-600'}"
+                          >
+                            {notification.status.charAt(0).toUpperCase() +
+                              notification.status.slice(1)}
                           </span>
                           {#if !notification.read}
-                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            <span class="h-2 w-2 rounded-full bg-blue-500"></span>
                           {/if}
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1">
+                        <p class="text-muted-foreground mt-1 text-xs">
                           ID: {notification.audioId} • {formatDate(notification.timestamp)}
                         </p>
                       </div>
@@ -285,9 +312,9 @@
               </div>
             </div>
           {:else}
-            <div class="text-center py-6">
-              <p class="text-sm text-muted-foreground">No notifications yet</p>
-              <p class="text-xs text-muted-foreground mt-1">
+            <div class="py-6 text-center">
+              <p class="text-muted-foreground text-sm">No notifications yet</p>
+              <p class="text-muted-foreground mt-1 text-xs">
                 You'll see updates here when your whitelist requests are processed
               </p>
             </div>
@@ -296,9 +323,7 @@
       </div>
 
       <Dialog.Footer>
-        <Button type="button" variant="outline" onclick={() => open = false}>
-          Close
-        </Button>
+        <Button type="button" variant="outline" onclick={() => (open = false)}>Close</Button>
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>

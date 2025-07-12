@@ -113,15 +113,29 @@ function createNotificationStore() {
      * Show a browser notification
      */
     showNotification(notification: Omit<WhitelistNotification, 'id' | 'timestamp' | 'read'>) {
+      console.log('🔔 [NOTIFICATION DEBUG] showNotification called:', {
+        audioId: notification.audioId,
+        audioName: notification.audioName,
+        status: notification.status,
+        stackTrace: new Error().stack
+      });
+
       if (!browser || !('Notification' in window) || Notification.permission !== 'granted') {
+        console.log('🔔 [NOTIFICATION DEBUG] Browser notification skipped:', {
+          browser,
+          notificationSupported: 'Notification' in window,
+          permission: browser && 'Notification' in window ? Notification.permission : 'unknown'
+        });
         return;
       }
 
-      const title = notification.status === 'approved' 
-        ? '✅ Whitelist request approved!' 
+      const title = notification.status === 'approved'
+        ? '✅ Whitelist request approved!'
         : '❌ Whitelist request rejected';
       
       const body = `Your request for "${notification.audioName}" (ID: ${notification.audioId}) has been ${notification.status}.`;
+
+      console.log('🔔 [NOTIFICATION DEBUG] Creating browser notification:', { title, body });
 
       const browserNotification = new Notification(title, {
         body,
@@ -146,14 +160,16 @@ function createNotificationStore() {
         browserNotification.close();
       };
 
-      // Store the notification
+      // Store the notification with a more robust ID generation
+      const timestamp = Date.now();
       const fullNotification: WhitelistNotification = {
-        id: `${notification.audioId}-${Date.now()}`,
+        id: `${notification.audioId}-${notification.status}-${timestamp}`,
         ...notification,
         timestamp: new Date().toISOString(),
         read: false
       };
 
+      console.log('🔔 [NOTIFICATION DEBUG] Adding notification to store:', fullNotification);
       this.addNotification(fullNotification);
     },
 
@@ -161,10 +177,34 @@ function createNotificationStore() {
      * Add notification to store
      */
     addNotification(notification: WhitelistNotification) {
-      update(state => ({
-        ...state,
-        notifications: [notification, ...state.notifications].slice(0, 50) // Keep last 50
-      }));
+      console.log('🔔 [NOTIFICATION DEBUG] addNotification called:', {
+        id: notification.id,
+        audioId: notification.audioId,
+        status: notification.status,
+        stackTrace: new Error().stack
+      });
+
+      update(state => {
+        // Check for duplicates by ID
+        const exists = state.notifications.some(n => n.id === notification.id);
+        if (exists) {
+          console.warn('🔔 [NOTIFICATION DEBUG] Duplicate notification prevented:', {
+            id: notification.id,
+            existingNotifications: state.notifications.map(n => ({ id: n.id, audioId: n.audioId, status: n.status }))
+          });
+          return state;
+        }
+        
+        console.log('🔔 [NOTIFICATION DEBUG] Adding new notification to store:', {
+          newNotification: notification,
+          currentCount: state.notifications.length
+        });
+        
+        return {
+          ...state,
+          notifications: [notification, ...state.notifications].slice(0, 50) // Keep last 50
+        };
+      });
       this.saveStoredNotifications();
     },
 
@@ -245,14 +285,34 @@ function createNotificationStore() {
     loadStoredNotifications() {
       if (!browser) return;
       
+      console.log('🔔 [NOTIFICATION DEBUG] loadStoredNotifications called:', {
+        stackTrace: new Error().stack
+      });
+      
       try {
         const stored = localStorage.getItem('whitelist-notifications');
         if (stored) {
           const notifications = JSON.parse(stored);
-          update(state => ({ ...state, notifications }));
+          console.log('🔔 [NOTIFICATION DEBUG] Found stored notifications:', {
+            count: notifications.length,
+            notifications: notifications.map((n: any) => ({ id: n.id, audioId: n.audioId, status: n.status }))
+          });
+          
+          update(state => {
+            // Only load if current notifications array is empty to prevent duplicates
+            if (state.notifications.length === 0) {
+              console.log('🔔 [NOTIFICATION DEBUG] Loading stored notifications into empty store');
+              return { ...state, notifications };
+            } else {
+              console.log('🔔 [NOTIFICATION DEBUG] Skipping load - store already has notifications:', state.notifications.length);
+            }
+            return state;
+          });
+        } else {
+          console.log('🔔 [NOTIFICATION DEBUG] No stored notifications found');
         }
       } catch (error) {
-        console.error('Failed to load stored notifications:', error);
+        console.error('🔔 [NOTIFICATION DEBUG] Failed to load stored notifications:', error);
       }
     },
 
@@ -275,7 +335,8 @@ function createNotificationStore() {
      */
     getCurrentState(): NotificationState {
       let currentState: NotificationState = initialState;
-      subscribe(state => { currentState = state; })();
+      const unsubscribe = subscribe(state => { currentState = state; });
+      unsubscribe(); // Immediately unsubscribe to prevent memory leaks
       return currentState;
     }
   };

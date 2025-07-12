@@ -11,16 +11,57 @@ interface WhitelistStatusUpdate {
 }
 
 class WhitelistNotificationService {
+  private static instance: WhitelistNotificationService | null = null;
+  
   private isListening = false;
-  private pollInterval: number | null = null;
+  private visibleInterval: number | null = null;
+  private hiddenInterval: number | null = null;
   private lastChecked: string | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private basePollingInterval = 30000; // 30 seconds
+  private basePollingInterval = 30000; // 30 seconds (visible)
+  private hiddenPollingInterval = 60000; // 60 seconds (hidden)
   private currentPollingInterval = this.basePollingInterval;
+  private isCheckingForUpdates = false; // Prevent parallel requests
+  private visibilityChangeHandler: (() => void) | null = null;
+  
+  // Dual timer state for visible/hidden intervals (like speed chess)
+  private visibleTimerState = {
+    startTime: 0,
+    remainingTime: this.basePollingInterval,
+    isPaused: false
+  };
+  private hiddenTimerState = {
+    startTime: 0,
+    remainingTime: this.hiddenPollingInterval,
+    isPaused: true // Start paused since we begin visible
+  };
+
+  // Private constructor to prevent direct instantiation
+  private constructor() {}
 
   /**
-   * Start listening for whitelist status updates using secure polling
+   * Get the singleton instance
+   */
+  public static getInstance(): WhitelistNotificationService {
+    if (!WhitelistNotificationService.instance) {
+      WhitelistNotificationService.instance = new WhitelistNotificationService();
+    }
+    return WhitelistNotificationService.instance;
+  }
+
+  /**
+   * Reset the singleton instance (for testing/cleanup)
+   */
+  public static resetInstance(): void {
+    if (WhitelistNotificationService.instance) {
+      WhitelistNotificationService.instance.stopListening();
+      WhitelistNotificationService.instance = null;
+    }
+  }
+
+  /**
+   * Start listening for whitelist status by polling
    */
   async startListening() {
     if (!browser || this.isListening) {
@@ -39,32 +80,143 @@ class WhitelistNotificationService {
     // Initial check
     await this.checkForUpdates();
     
-    // Set up polling interval
-    this.pollInterval = window.setInterval(() => {
-      this.checkForUpdates();
-    }, this.currentPollingInterval);
+    // Start with visible timer (assuming tab is visible initially)
+    this.startVisibleTimer();
 
     // Set up visibility change handling
     this.setupVisibilityHandling();
   }
 
   /**
-   * Stop listening for updates
+   * Start the visible timer (normal polling when tab is visible)
    */
-  stopListening() {
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-      this.pollInterval = null;
+  private startVisibleTimer() {
+    // Clear any existing visible interval
+    if (this.visibleInterval) {
+      clearInterval(this.visibleInterval);
     }
-    this.isListening = false;
-    this.reconnectAttempts = 0;
-    this.currentPollingInterval = this.basePollingInterval;
+
+    const interval = this.visibleTimerState.isPaused ? this.visibleTimerState.remainingTime : this.basePollingInterval;
+    this.visibleTimerState.startTime = Date.now();
+    this.visibleTimerState.isPaused = false;
+    
+    this.visibleInterval = window.setInterval(() => {
+      if (!this.isCheckingForUpdates) {
+        this.checkForUpdates();
+      }
+      this.visibleTimerState.startTime = Date.now();
+      this.visibleTimerState.remainingTime = this.basePollingInterval;
+    }, interval);
   }
 
   /**
-   * Check for new whitelist status updates via secure API
+   * Start the hidden timer (slower polling when tab is hidden)
+   */
+  private startHiddenTimer() {
+    // Clear any existing hidden interval
+    if (this.hiddenInterval) {
+      clearInterval(this.hiddenInterval);
+    }
+
+    const interval = this.hiddenTimerState.isPaused ? this.hiddenTimerState.remainingTime : this.hiddenPollingInterval;
+    this.hiddenTimerState.startTime = Date.now();
+    this.hiddenTimerState.isPaused = false;
+    
+    this.hiddenInterval = window.setInterval(() => {
+      if (!this.isCheckingForUpdates) {
+        this.checkForUpdates();
+      }
+      this.hiddenTimerState.startTime = Date.now();
+      this.hiddenTimerState.remainingTime = this.hiddenPollingInterval;
+    }, interval);
+  }
+
+  /**
+   * Pause the visible timer and start the hidden timer
+   */
+  private pauseVisibleStartHidden() {
+    if (this.visibleInterval && !this.visibleTimerState.isPaused) {
+      const elapsed = Date.now() - this.visibleTimerState.startTime;
+      this.visibleTimerState.remainingTime = Math.max(0, this.basePollingInterval - elapsed);
+      
+      clearInterval(this.visibleInterval);
+      this.visibleInterval = null;
+      this.visibleTimerState.isPaused = true;
+    }
+    
+    // Start hidden timer
+    this.startHiddenTimer();
+  }
+
+  /**
+   * Pause the hidden timer and start the visible timer
+   */
+  private pauseHiddenStartVisible() {
+    if (this.hiddenInterval && !this.hiddenTimerState.isPaused) {
+      const elapsed = Date.now() - this.hiddenTimerState.startTime;
+      this.hiddenTimerState.remainingTime = Math.max(0, this.hiddenPollingInterval - elapsed);
+      
+      clearInterval(this.hiddenInterval);
+      this.hiddenInterval = null;
+      this.hiddenTimerState.isPaused = true;
+    }
+    
+    // Start visible timer
+    this.startVisibleTimer();
+  }
+
+  /**
+   * Stop listening for updates
+   */
+  stopListening() {
+
+    // Clear both timers
+    if (this.visibleInterval) {
+      clearInterval(this.visibleInterval);
+      this.visibleInterval = null;
+    }
+    
+    if (this.hiddenInterval) {
+      clearInterval(this.hiddenInterval);
+      this.hiddenInterval = null;
+    }
+
+    // Clean up visibility change handler
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+      this.visibilityChangeHandler = null;
+    }
+
+    // Reset all state
+    this.isListening = false;
+    this.isCheckingForUpdates = false;
+    this.reconnectAttempts = 0;
+    this.currentPollingInterval = this.basePollingInterval;
+    
+    // Reset timer states
+    this.visibleTimerState = {
+      startTime: 0,
+      remainingTime: this.basePollingInterval,
+      isPaused: false
+    };
+    this.hiddenTimerState = {
+      startTime: 0,
+      remainingTime: this.hiddenPollingInterval,
+      isPaused: true
+    };
+  }
+
+  /**
+   * Check for new whitelist status updates via API
    */
   private async checkForUpdates() {
+    // Prevent parallel requests
+    if (this.isCheckingForUpdates) {
+      return;
+    }
+
+    this.isCheckingForUpdates = true;
+
     try {
       // Check if user is still authenticated
       const authState = auth.getCurrentState();
@@ -87,7 +239,6 @@ class WhitelistNotificationService {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // User is no longer authenticated
           this.stopListening();
           return;
         }
@@ -111,8 +262,9 @@ class WhitelistNotificationService {
       this.currentPollingInterval = this.basePollingInterval;
 
     } catch (error) {
-      console.error('❌ Failed to check for whitelist updates:', error);
       this.handleConnectionError();
+    } finally {
+      this.isCheckingForUpdates = false;
     }
   }
 
@@ -123,25 +275,28 @@ class WhitelistNotificationService {
 
     // Get current notification settings
     const notificationState = notifications.getCurrentState();
-    
+
     if (notificationState.enabled && notificationState.permission.status === 'granted') {
-      // Show browser notification
+      // Show browser notification (this also adds to history)
       notifications.showNotification({
         audioId: update.audioId,
         audioName: update.name,
         status: update.status.toLowerCase() as 'approved' | 'rejected'
       });
+    } else {
+      // Only add to notification history if browser notifications are disabled
+      const timestamp = Date.now();
+      const status = update.status.toLowerCase() as 'approved' | 'rejected';
+      const notificationToAdd = {
+        id: `${update.audioId}-${status}-${timestamp}`,
+        audioId: update.audioId,
+        audioName: update.name,
+        status: status,
+        timestamp: update.updatedAt,
+        read: false
+      };
+      notifications.addNotification(notificationToAdd);
     }
-
-    // Always add to notification history (even if browser notifications are disabled)
-    notifications.addNotification({
-      id: `${update.requestId}-${Date.now()}`,
-      audioId: update.audioId,
-      audioName: update.name,
-      status: update.status.toLowerCase() as 'approved' | 'rejected',
-      timestamp: update.updatedAt,
-      read: false
-    });
   }
 
   /**
@@ -170,36 +325,21 @@ class WhitelistNotificationService {
   private setupVisibilityHandling() {
     if (!browser) return;
 
-    const handleVisibilityChange = () => {
+    // Clean up any existing handler
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+    }
+
+    this.visibilityChangeHandler = () => {
+
       if (document.hidden) {
-        // Page is hidden, reduce polling frequency
-        if (this.pollInterval) {
-          clearInterval(this.pollInterval);
-          this.pollInterval = window.setInterval(() => {
-            this.checkForUpdates();
-          }, this.currentPollingInterval * 2); // Double the interval when hidden
-        }
+        this.pauseVisibleStartHidden();
       } else {
-        // Page is visible again, restore normal polling
-        if (this.pollInterval) {
-          clearInterval(this.pollInterval);
-          this.pollInterval = window.setInterval(() => {
-            this.checkForUpdates();
-          }, this.currentPollingInterval);
-        }
-        // Check immediately when page becomes visible
-        this.checkForUpdates();
+        this.pauseHiddenStartVisible();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Clean up event listener when service stops
-    const originalStopListening = this.stopListening.bind(this);
-    this.stopListening = () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      originalStopListening();
-    };
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
   }
 
   /**
@@ -245,8 +385,8 @@ class WhitelistNotificationService {
   }
 }
 
-// Create singleton instance
-export const whitelistNotificationService = new WhitelistNotificationService();
+// Export singleton instance
+export const whitelistNotificationService = WhitelistNotificationService.getInstance();
 
 // Set up global event listeners for edge cases
 if (browser) {
