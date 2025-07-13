@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { goto } from '$app/navigation';
+import { goto, replaceState } from '$app/navigation';
 import { z } from 'zod';
 
 export interface FilterData {
@@ -104,7 +104,7 @@ export function readSearchParams(): SearchParams {
 /**
  * Update URL parameters without triggering navigation with validation
  */
-export function updateSearchParams(params: SearchParams, replaceState = true) {
+export function updateSearchParams(params: SearchParams, shouldReplaceState = true) {
   if (!browser) return;
   
   const url = new URL(window.location.href);
@@ -160,8 +160,8 @@ export function updateSearchParams(params: SearchParams, replaceState = true) {
   // Update URL
   const newUrl = url.toString();
   if (newUrl !== window.location.href) {
-    if (replaceState) {
-      window.history.replaceState({}, '', newUrl);
+    if (shouldReplaceState) {
+      replaceState(newUrl, '');
     } else {
       goto(newUrl, { replaceState: false, noScroll: true });
     }
