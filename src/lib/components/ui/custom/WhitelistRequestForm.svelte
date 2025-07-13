@@ -90,9 +90,6 @@
       isSubmitting = false;
     }
   }
-  messages = [
-    { type: 'success', content: 'Successfully submitted whitelist request', icon: LucideCheck },
-  ];
 </script>
 
 {#if $auth.authenticated}
