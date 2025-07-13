@@ -3,6 +3,7 @@
   import { auth } from '$lib/stores/auth';
   import { Button } from '$lib/components/ui/button/index';
   import * as Popover from '$lib/components/ui/popover/index';
+  import { toast } from "svelte-sonner";
   import SimpleIconsRoblox from '~icons/simple-icons/roblox';
   import LucideLoaderCircle from '~icons/lucide/loader-circle';
   import { Alert, AlertDescription } from '$lib/components/ui/alert/index';
@@ -49,40 +50,9 @@
       alert('Token refresh failed. Please log in again.');
     }
   }
-
-  function dismissReauthNotification() {
-    auth.clearReauthRequirement();
-  }
 </script>
 
 <div class="auth-container">
-  <!-- {#if $auth.requiresReauth}
-    <Alert class="mb-4 border-orange-200 bg-orange-50">
-      <AlertDescription class="flex items-center justify-between">
-        <span class="text-orange-800">
-          Your session has expired. Please log in again to continue.
-        </span>
-        <div class="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onclick={handleLogin}
-            disabled={isLoggingIn}
-          >
-            {isLoggingIn ? 'Logging in...' : 'Log in'}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onclick={dismissReauthNotification}
-          >
-            Dismiss
-          </Button>
-        </div>
-      </AlertDescription>
-    </Alert>
-  {/if} -->
-
   {#if $auth.loading}
     <div class="flex items-center gap-2">
       <LucideLoaderCircle class="animate-spin" />
