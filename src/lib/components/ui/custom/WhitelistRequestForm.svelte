@@ -7,7 +7,10 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import * as Alert from '$lib/components/ui/alert/index.js';
   import LucidePlus from '~icons/lucide/plus';
+  import LucideCheck from '~icons/lucide/check';
+  import LucideCircleAlert from '~icons/lucide/circle-alert';
   import { FetchError, ofetch } from 'ofetch';
+    import type { Component } from 'svelte';
 
   let { triggerClass = '' } = $props();
 
@@ -30,7 +33,7 @@
   });
 
   // Messages state (supports both errors and success messages)
-  let messages: Array<{ type: 'error' | 'success'; content: string }> = $state([]);
+  let messages: Array<{ type: Alert.AlertVariant; content: string, icon?: Component }> = $state([]);
 
   function validateForm() {
     errors.audioId = formData.audioId.trim() ? '' : 'Audio ID is required';
@@ -48,6 +51,9 @@
     errors.audioId = '';
     errors.audioName = '';
     errors.audioCategory = '';
+  }
+
+  function resetMessages() {
     messages = [];
   }
 
@@ -55,7 +61,7 @@
     if (!validateForm()) return;
 
     isSubmitting = true;
-    messages = []; // Clear any previous messages
+    resetMessages();
 
     try {
       const response = await ofetch.raw('/api/whitelist/request', {
@@ -69,26 +75,24 @@
 
       if (response.ok) {
         resetForm();
-        messages = [{ type: 'success', content: 'Whitelist request submitted successfully!' }];
+        messages = [{ type: 'success', content: 'Successfully submitted whitelist request', icon: LucideCheck }];
       } else {
         const errorData = response._data;
         messages = [
-          { type: 'error', content: errorData.message || 'Failed to submit whitelist request' }
+          { type: 'error', content: errorData.message || 'Failed to submit whitelist request', icon: LucideCircleAlert }
         ];
       }
     } catch (error) {
       if (!(error instanceof FetchError)) return;
       console.error('Error submitting whitelist request:', error);
-      messages = [
-        {
-          type: 'error',
-          content: error.data.error ?? 'An error occurred while submitting the request'
-        }
-      ];
+      messages = [{ type: 'error', content: error.data.error ?? 'An error occurred while submitting the request', icon: LucideCircleAlert }];
     } finally {
       isSubmitting = false;
     }
   }
+  messages = [
+    { type: 'success', content: 'Successfully submitted whitelist request', icon: LucideCheck },
+  ];
 </script>
 
 {#if $auth.authenticated}
@@ -118,6 +122,9 @@
 
       {#each messages as message}
         <Alert.Root variant={message.type ?? 'default'}>
+          {#if message.icon}
+            <message.icon />
+          {/if}
           <Alert.Description>
             {message.content}
           </Alert.Description>

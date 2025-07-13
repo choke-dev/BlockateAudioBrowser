@@ -22,7 +22,7 @@ export const POST: RequestHandler = async (event) => {
         const body = await event.request.json();
         const { audioId, audioName, audioCategory, isPrivate } = WhitelistRequestSchema.parse(body);
         
-        const [existingRequest, isWhitelisted] = await Promise.all([
+        const [existingRequest, foundAudio] = await Promise.all([
             db.query.whitelistRequests.findFirst({
                 where: and(
                     eq(whitelistRequests.audioId, String(audioId)),
@@ -31,15 +31,17 @@ export const POST: RequestHandler = async (event) => {
             }),
             db.query.audios.findFirst({
                 where: eq(audios.id, BigInt(audioId)),
-                columns: { id: true } // Only check existence
+                columns: { id: true, audioLifecycle: true }
             })
         ]);
 
-        if (isWhitelisted) {
-            return json(
-                { error: 'This audio ID is already whitelisted for Blockate.' },
-                { status: 400 }
-            );
+        if (foundAudio) {
+            switch(foundAudio.audioLifecycle) {
+                case 'ACTIVE':
+                    return json({ error: 'This audio ID is already whitelisted for Blockate.' }, { status: 400 });
+                case 'MODERATED':
+                    return json({ error: 'This audio ID has been removed by Roblox moderation.' }, { status: 400 });
+            }
         }
 
         if (existingRequest) {
@@ -97,11 +99,11 @@ export const POST: RequestHandler = async (event) => {
                 body: [Number(audioId)]
             });
         } catch (err) {
-            return json({ error: 'Failed to check audio accessibility, please try again later.' }, { status: 500 });
+            return json({ error: 'Failed to check if audio is accessible, please try again later.' }, { status: 500 });
         }
-
+        
         if (!audioUrlsResponse.ok) {
-            return json({ error: 'Failed to check audio accessibility, please try again later.' }, { status: 500 });
+            return json({ error: 'Failed to check if audio is accessible, please try again later.' }, { status: 500 });
         }
 
         if (audioUrlsResponse._data[0]?.code === 403) {
