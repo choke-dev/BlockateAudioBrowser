@@ -1,5 +1,5 @@
 <script lang="ts">
-  const lastUpdated = "July 7, 2025";
+  const lastUpdated = "July 13, 2025";
 </script>
 
 <svelte:head>
@@ -50,6 +50,7 @@
       <ul class="list-disc pl-6 mb-4">
         <li><strong>openid:</strong> Required for user authentication and to receive your unique user identifier</li>
         <li><strong>profile:</strong> Allows us to access your username, display name, and avatar for personalization and account linking</li>
+        <li><strong>asset:read:</strong> Enables access to your audio assets to assist with audio selection in whitelist request forms</li>
       </ul>
       <p>
         We follow Roblox's principle of least privilege, requesting only the minimum scopes necessary 
@@ -60,6 +61,7 @@
         <li>Displaying the currently logged in account for your convenience</li>
         <li>Linking your Roblox account to your Blockate Audio Database account</li>
         <li>Audio content association with your account for management purposes</li>
+        <li>Assisting with audio asset selection when submitting whitelist requests by providing access to your owned audio files</li>
       </ul>
       <p>
         Our application undergoes Roblox's scope review process to ensure compliance with their 
@@ -100,6 +102,7 @@
         <li>Personalizing your experience within our application</li>
         <li>Providing audio management and discovery services</li>
         <li>Maintaining application functionality and user preferences</li>
+        <li>Assisting with audio asset selection in whitelist request forms by accessing audios that you own</li>
       </ul>
       <p><strong>Prohibited Uses:</strong> We will not:</p>
       <ul class="list-disc pl-6 mb-4">

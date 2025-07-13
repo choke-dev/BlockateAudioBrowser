@@ -1,5 +1,5 @@
 <script lang="ts">
-  const lastUpdated = "July 7, 2025";
+  const lastUpdated = "July 13, 2025";
 </script>
 
 <svelte:head>
@@ -41,6 +41,13 @@
         <li><strong>Username:</strong> Your Roblox username for display and personalization</li>
         <li><strong>Display Name:</strong> Your Roblox display name for enhanced user experience</li>
         <li><strong>Avatar URL:</strong> Link to your Roblox avatar image for profile display</li>
+      </ul>
+
+      <h3 class="text-xl font-semibold mb-3">asset:read Scope:</h3>
+      <ul class="list-disc pl-6 mb-4">
+        <li><strong>Audio Assets:</strong> Access to your audio assets for selection assistance in whitelist requests</li>
+        <li><strong>Asset Metadata:</strong> Basic information about your audio assets (titles, IDs, creation dates) to help you identify and select the correct audio for whitelist submissions</li>
+        <li><strong>Asset Ownership:</strong> Verification that you own or have access to specific audio assets when submitting whitelist requests</li>
       </ul>
 
       <h3 class="text-xl font-semibold mb-3">Technical Data:</h3>
@@ -88,6 +95,7 @@
         <li><strong>Personalization:</strong> Displaying your username and avatar throughout the application</li>
         <li><strong>Audio Management:</strong> Associating audio content and preferences with your account</li>
         <li><strong>User Experience:</strong> Providing a customized interface based on your profile</li>
+        <li><strong>Whitelist Assistance:</strong> Using your audio asset information to help you select and identify the correct audio files when submitting whitelist requests</li>
       </ul>
 
       <h3 class="text-xl font-semibold mb-3">Token Management:</h3>
