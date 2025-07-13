@@ -10,7 +10,7 @@ title: How do I get an audio ID whitelisted in Blockate?
 
    import LucideInfo from '~icons/lucide/info';
    import LucideTriangleAlert from '~icons/lucide/triangle-alert';
-   import MaterialSymbolsCheckCircleRounded from '~icons/material-symbols/check-circle-rounded';
+   import LucideCheck from '~icons/lucide/check';
 
    const rootUrl = $page.url.origin;
    const isAuthenticated = auth.isAuthenticated && auth.user;
@@ -48,8 +48,8 @@ title: How do I get an audio ID whitelisted in Blockate?
 ---
 
 ## 2. Send **[BMusicUploader](https://www.roblox.com/users/4572614730/profile)** a friend request on Roblox
-1. In Roblox, search for **`BMusicUploader`**.  
-2. Send and accept the friend request.
+1. In Roblox, search for **BMusicUploader**
+2. Send a friend request to **BMusicUploader**
 
 ---
 ## 3. Grant "Use" Permissions to the Audio
@@ -123,14 +123,14 @@ title: How do I get an audio ID whitelisted in Blockate?
       </ul>
    </div>
    <div>
-      <img class="w-full rounded border" src="https://i.ibb.co/r276YPRM/brave-duu-AE0-Hp-YV.png" alt="Whitelist request form showing Audio ID, Audio Name, Audio Category fields and Is Private checkbox"/>
+      <img class="w-full rounded border" src="https://i.ibb.co/MDPSFKMg/image.png" alt="Whitelist request form showing Audio ID, Audio Name, Audio Category fields and Is Private checkbox"/>
    </div>
 </div>
 
 ---
 
 <Alert.Root variant="success" class="w-full max-w-none not-prose">
-   <MaterialSymbolsCheckCircleRounded class="size-lg" />
+   <LucideCheck />
    <Alert.Title>That's it!</Alert.Title>
    <Alert.Description>
       Once you submit your whitelist request, you will usually receive an immediate response; if not, it will be reviewed by a moderator within 24 hours.
