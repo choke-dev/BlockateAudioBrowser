@@ -8,20 +8,25 @@ const STATIC_RESOURCES = [
   '/audiodb.png',
 ];
 
-// Resources that should use network-first strategy
-const NETWORK_FIRST_PATTERNS = [
-  /^\/api\//,           // All API routes
-  /^\/auth\//,          // Authentication routes
-  /\.json$/,            // JSON files
-  /\.css$/,
-  /\.js$/,
+// Cache configuration with patterns and durations (in milliseconds)
+// null duration = no expiration, number = milliseconds until expiration, 0 = don't cache
+const CACHE_CONFIG = [
+  // Network-first patterns (cache as fallback for offline use)
+  { pattern: /^\/api\//, strategy: 'network-first', duration: 0 },
+  { pattern: /^\/auth\//, strategy: 'network-first', duration: 0 },
+  { pattern: /\.json$/, strategy: 'network-first', duration: 0 },
+  { pattern: /\.css$/, strategy: 'network-first', duration: 0 },
+  { pattern: /\.js$/, strategy: 'network-first', duration: 0 },
+  
+  // Cache-first patterns (prioritize cached content)
+  { pattern: /\.(woff|woff2|ttf|eot)$/, strategy: 'cache-first', duration: 30 * 24 * 60 * 60 * 1000 },
+  { pattern: /\.(png|jpg|jpeg|gif|svg|ico)$/, strategy: 'cache-first', duration: 7 * 24 * 60 * 60 * 1000 },
+  { pattern: /^https:\/\/audio\.jukehost\.co\.uk\//, strategy: 'cache-first', duration: 14 * 24 * 60 * 60 * 1000 },
 ];
 
-// Resources that should be cached (cache-first strategy)
-const CACHE_FIRST_PATTERNS = [
-  /\.(woff|woff2|ttf|eot)$/,         // Font files
-  /\.(png|jpg|jpeg|gif|svg|ico)$/,   // Images
-];
+// Legacy arrays for backward compatibility (derived from CACHE_CONFIG)
+const NETWORK_FIRST_PATTERNS = CACHE_CONFIG.filter(c => c.strategy === 'network-first').map(c => c.pattern);
+const CACHE_FIRST_PATTERNS = CACHE_CONFIG.filter(c => c.strategy === 'cache-first').map(c => c.pattern);
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...');
@@ -44,23 +49,27 @@ self.addEventListener('activate', (event) => {
   console.log('Service Worker: Activating...');
   
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            // Delete old caches
-            if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
-              console.log('Service Worker: Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        console.log('Service Worker: Activation complete');
-        // Ensure the service worker takes control of all clients immediately
-        return self.clients.claim();
-      })
+    Promise.all([
+      // Delete old caches
+      caches.keys()
+        .then((cacheNames) => {
+          return Promise.all(
+            cacheNames.map((cacheName) => {
+              if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
+                console.log('Service Worker: Deleting old cache:', cacheName);
+                return caches.delete(cacheName);
+              }
+            })
+          );
+        }),
+      // Clean up expired cache entries
+      cleanupExpiredCacheEntries()
+    ])
+    .then(() => {
+      console.log('Service Worker: Activation complete');
+      // Ensure the service worker takes control of all clients immediately
+      return self.clients.claim();
+    })
   );
 });
 
@@ -81,13 +90,124 @@ self.addEventListener('fetch', (event) => {
   // Determine caching strategy based on URL patterns
   if (shouldUseNetworkFirst(url.pathname)) {
     event.respondWith(networkFirstStrategy(request));
-  } else if (shouldUseCacheFirst(url.pathname)) {
+  } else if (shouldUseCacheFirst(url.pathname, request.url)) {
     event.respondWith(cacheFirstStrategy(request));
   } else {
     // Default to network-first for everything else
     event.respondWith(networkFirstStrategy(request));
   }
 });
+
+/**
+ * Get cache configuration for a URL
+ */
+function getCacheConfig(url, pathname) {
+  return CACHE_CONFIG.find(config => {
+    // Test against pathname for relative patterns
+    if (config.pattern.test(pathname)) {
+      return true;
+    }
+    // Test against full URL for absolute patterns
+    if (url && config.pattern.test(url)) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Cache a response with expiration metadata
+ */
+async function cacheResponseWithExpiration(cache, request, response) {
+  const config = getCacheConfig(request.url, new URL(request.url).pathname);
+  const duration = config?.duration;
+  
+  if (duration === null) {
+    // No expiration - cache normally
+    const responseClone = response.clone();
+    await cache.put(request, responseClone);
+  } else if (duration > 0) {
+    // Cache with expiration timestamp
+    const expirationTime = Date.now() + duration;
+    const responseClone = response.clone();
+    
+    // Add expiration metadata to response headers
+    const modifiedResponse = new Response(responseClone.body, {
+      status: responseClone.status,
+      statusText: responseClone.statusText,
+      headers: {
+        ...Object.fromEntries(responseClone.headers.entries()),
+        'sw-cache-expires': expirationTime.toString()
+      }
+    });
+    
+    await cache.put(request, modifiedResponse);
+  }
+  // If duration is 0 or undefined, don't cache
+}
+
+/**
+ * Get cached response if it's still valid (not expired)
+ */
+async function getCachedResponseIfValid(cache, request) {
+  // Try exact match first
+  let cachedResponse = await cache.match(request, { ignoreVary: true });
+  
+  if (!cachedResponse) {
+    return null;
+  }
+  
+  // Check if response has expiration metadata
+  const expiresHeader = cachedResponse.headers.get('sw-cache-expires');
+  
+  if (expiresHeader) {
+    const expirationTime = parseInt(expiresHeader);
+    const now = Date.now();
+    
+    if (now > expirationTime) {
+      // Response has expired, remove from cache
+      console.log('Service Worker: Cached response expired, removing:', request.url);
+      await cache.delete(request);
+      return null;
+    }
+  }
+  
+  // Response is valid (no expiration or not expired yet)
+  return cachedResponse;
+}
+
+/**
+ * Clean up expired cache entries
+ */
+async function cleanupExpiredCacheEntries() {
+  try {
+    console.log('Service Worker: Starting cache cleanup...');
+    const cache = await caches.open(CACHE_NAME);
+    const requests = await cache.keys();
+    let cleanedCount = 0;
+    
+    for (const request of requests) {
+      const response = await cache.match(request);
+      if (response) {
+        const expiresHeader = response.headers.get('sw-cache-expires');
+        if (expiresHeader) {
+          const expirationTime = parseInt(expiresHeader);
+          const now = Date.now();
+          
+          if (now > expirationTime) {
+            await cache.delete(request);
+            cleanedCount++;
+            console.log('Service Worker: Cleaned expired cache entry:', request.url);
+          }
+        }
+      }
+    }
+    
+    console.log(`Service Worker: Cache cleanup complete. Removed ${cleanedCount} expired entries.`);
+  } catch (error) {
+    console.error('Service Worker: Cache cleanup failed:', error);
+  }
+}
 
 /**
  * Network-first strategy: Try network first, fallback to cache
@@ -101,10 +221,9 @@ async function networkFirstStrategy(request) {
     // Try to fetch from network
     const networkResponse = await fetch(request);
     
-    // If successful, clone and cache the response
+    // If successful, clone and cache the response with expiration
     if (networkResponse.ok) {
-      const responseClone = networkResponse.clone();
-      await cache.put(request, responseClone);
+      await cacheResponseWithExpiration(cache, request, networkResponse);
       console.log('Service Worker: Cached fresh response for:', request.url);
     }
     
@@ -112,8 +231,8 @@ async function networkFirstStrategy(request) {
   } catch (error) {
     console.log('Service Worker: Network failed, trying cache for:', request.url);
     
-    // Network failed, try to get from cache
-    const cachedResponse = await cache.match(request);
+    // Network failed, try to get valid cached response
+    const cachedResponse = await getCachedResponseIfValid(cache, request);
     
     if (cachedResponse) {
       console.log('Service Worker: Serving from cache:', request.url);
@@ -199,24 +318,23 @@ async function networkFirstStrategy(request) {
 async function cacheFirstStrategy(request) {
   const cache = await caches.open(CACHE_NAME);
   
-  // Try to get from cache first
-  const cachedResponse = await cache.match(request);
+  // Check if cached response is still valid
+  const cachedResponse = await getCachedResponseIfValid(cache, request);
   
   if (cachedResponse) {
     console.log('Service Worker: Serving from cache (cache-first):', request.url);
     return cachedResponse;
   }
   
-  console.log('Service Worker: Cache miss, fetching from network (cache-first):', request.url);
+  console.log('Service Worker: Cache miss or expired, fetching from network (cache-first):', request.url);
   
   try {
-    // Not in cache, fetch from network
+    // Not in cache or expired, fetch from network
     const networkResponse = await fetch(request);
     
     // Cache the response if successful
     if (networkResponse.ok) {
-      const responseClone = networkResponse.clone();
-      await cache.put(request, responseClone);
+      await cacheResponseWithExpiration(cache, request, networkResponse);
       console.log('Service Worker: Cached response (cache-first):', request.url);
     }
     
@@ -237,8 +355,18 @@ function shouldUseNetworkFirst(pathname) {
 /**
  * Check if URL should use cache-first strategy
  */
-function shouldUseCacheFirst(pathname) {
-  return CACHE_FIRST_PATTERNS.some(pattern => pattern.test(pathname));
+function shouldUseCacheFirst(pathname, fullUrl) {
+  return CACHE_FIRST_PATTERNS.some(pattern => {
+    // Test against pathname for file extension patterns
+    if (pattern.test(pathname)) {
+      return true;
+    }
+    // Test against full URL for external domain patterns
+    if (fullUrl && pattern.test(fullUrl)) {
+      return true;
+    }
+    return false;
+  });
 }
 
 // Handle background sync for failed requests (optional enhancement)
@@ -280,3 +408,8 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.openWindow('/')
   );
 });
+
+// Periodic cache cleanup (runs every hour)
+setInterval(() => {
+  cleanupExpiredCacheEntries();
+}, 60 * 60 * 1000); // 1 hour
