@@ -135,12 +135,12 @@ export const POST: RequestHandler = async (event) => {
         ofetch(`https://${NTFY_BASE_URL}/audioRequests`, {
             method: 'POST',
             headers: {
-                'Authorization': btoa(`Bearer ${NTFY_AUTH}`).replaceAll("=", "")
+                Authorization: `Bearer ${NTFY_AUTH}`,
             },
-            body: {
+            body: JSON.stringify({
                 ...whitelistRequest[0],
                 audioUrl: audioUrlsResponse._data[0] || ''
-            }
+            })
         })
 
         return json({
