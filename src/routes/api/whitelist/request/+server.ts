@@ -9,9 +9,7 @@ import { FetchError, ofetch } from 'ofetch';
 import { env } from '$env/dynamic/private';
 import { randomBytes } from 'crypto';
 import { eq, and } from 'drizzle-orm';
-import { supabase } from '$lib/server/supabase';
-
-const whitelistRequestChannel = supabase.channel('audio-whitelist')
+import { NTFY_AUTH, NTFY_BASE_URL } from '$env/static/private';
 
 export const POST: RequestHandler = async (event) => {
     try {
@@ -134,14 +132,16 @@ export const POST: RequestHandler = async (event) => {
         }).returning();
 
         // Send real-time notification
-        whitelistRequestChannel.send({
-            type: "broadcast",
-            event: "new-whitelist-request",
-            payload: {
+        ofetch(`https://${NTFY_BASE_URL}/audioRequests`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${NTFY_AUTH}`
+            },
+            body: {
                 ...whitelistRequest[0],
                 audioUrl: audioUrlsResponse._data[0] || ''
             }
-        });
+        })
 
         return json({
             id: whitelistRequest[0].requestId,
