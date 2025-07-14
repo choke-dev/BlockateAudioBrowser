@@ -150,7 +150,7 @@
       <Dialog.Header>
         <Dialog.Title>Notification Settings</Dialog.Title>
         <Dialog.Description>
-          Manage your whitelist request notifications and view recent updates.
+          Manage your notifications and view recent updates
         </Dialog.Description>
       </Dialog.Header>
 
@@ -300,7 +300,7 @@
             <div class="py-6 text-center">
               <p class="text-muted-foreground text-sm">No notifications yet</p>
               <p class="text-muted-foreground mt-1 text-xs">
-                You'll see updates here when your whitelist requests are processed
+                You'll see updates here when a notification is received
               </p>
             </div>
           {/if}
