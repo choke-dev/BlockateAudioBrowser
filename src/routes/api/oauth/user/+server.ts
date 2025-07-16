@@ -26,8 +26,9 @@ export const GET: RequestHandler = async ({ cookies }) => {
       });
     }
     
-    // Check if we have valid OAuth tokens
+    // Check if we have valid OAuth tokens and get stored tokens for scope info
     const validAccessToken = await robloxOAuth.getValidAccessToken(user.id);
+    const storedTokens = await robloxOAuth.getStoredTokens(user.id);
     
     if (!validAccessToken) {
       // User exists but tokens are invalid/expired
@@ -49,7 +50,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
         username: user.username,
         avatar: user.avatar,
         createdAt: user.createdAt
-      }
+      },
+      scopes: storedTokens?.scope || null
     });
     
   } catch (error) {

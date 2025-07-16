@@ -1,21 +1,23 @@
 <script lang="ts">
-  import { auth } from '$lib/stores/auth.js';
-  import * as Dialog from '$lib/components/ui/dialog/index.js';
-  import * as Form from '$lib/components/ui/form/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
   import * as Alert from '$lib/components/ui/alert/index.js';
-  import LucidePlus from '~icons/lucide/plus';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+  import * as Dialog from '$lib/components/ui/dialog/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { auth } from '$lib/stores/auth.js';
+  import { FetchError, ofetch } from 'ofetch';
+  import type { Component } from 'svelte';
   import LucideCheck from '~icons/lucide/check';
   import LucideCircleAlert from '~icons/lucide/circle-alert';
-  import { FetchError, ofetch } from 'ofetch';
-    import type { Component } from 'svelte';
+  import LucidePlus from '~icons/lucide/plus';
+  import LucideShield from '~icons/lucide/shield';
+  import AudioAssetSelector from './AudioAssetSelector.svelte';
 
   let { triggerClass = '' } = $props();
 
   let open = $state(false);
   let isSubmitting = $state(false);
+  let showReauthDialog = $state(false);
 
   // Form data
   let formData = $state({
@@ -55,6 +57,33 @@
 
   function resetMessages() {
     messages = [];
+  }
+
+  function handleScopeError() {
+    showReauthDialog = true;
+  }
+
+  async function handleReauthorization() {
+    try {
+      const response = await ofetch('/api/oauth/roblox/reauthorize', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.success && response.data) {
+        // Redirect to OAuth authorization URL with inventory scope
+        window.location.href = response.data;
+      } else {
+        throw new Error('Failed to get authorization URL');
+      }
+    } catch (error) {
+      console.error('Re-authorization failed:', error);
+      messages = [{
+        type: 'error',
+        content: 'Failed to initiate re-authorization. Please try again.',
+        icon: LucideCircleAlert
+      }];
+    }
   }
 
   async function handleSubmit() {
@@ -137,14 +166,23 @@
       >
         <div class="space-y-2">
           <label for="audioId" class="text-sm font-medium">Audio ID</label>
-          <Input
-            id="audioId"
-            bind:value={formData.audioId}
-            placeholder="Enter audio ID"
-            type="text"
-            class={errors.audioId ? 'border-red-500' : ''}
-          />
-          <p class="text-muted-foreground text-xs">The unique identifier for the audio file</p>
+          <div class="flex gap-2">
+            <Input
+              id="audioId"
+              bind:value={formData.audioId}
+              placeholder="Enter audio ID"
+              type="text"
+              class={`flex-1 ${errors.audioId ? 'border-red-500' : ''}`}
+              disabled={isSubmitting}
+            />
+            <AudioAssetSelector
+              bind:selectedAssetId={formData.audioId}
+              bind:selectedAssetName={formData.audioName}
+              onScopeError={handleScopeError}
+              disabled={isSubmitting}
+            />
+          </div>
+          <p class="text-muted-foreground text-xs">Enter an audio ID manually or select from your inventory</p>
           {#if errors.audioId}
             <p class="text-xs text-red-500">{errors.audioId}</p>
           {/if}
@@ -212,3 +250,52 @@
     </Dialog.Content>
   </Dialog.Root>
 {/if}
+
+<!-- Re-authorization Dialog -->
+<Dialog.Root bind:open={showReauthDialog}>
+  <Dialog.Content class="max-w-md">
+    <Dialog.Header>
+      <Dialog.Title class="flex items-center gap-2">
+        <LucideShield class="size-5" />
+        Additional Permission Required
+      </Dialog.Title>
+      <Dialog.Description>
+        To select audio assets from your inventory, you need to grant additional permissions.
+      </Dialog.Description>
+    </Dialog.Header>
+
+    <div class="space-y-4">
+      <Alert.Root>
+        <LucideCircleAlert />
+        <Alert.Description>
+          To use this feature, we need permission to view your Roblox inventory. You'll be redirected to Roblox to grant this access and then returned here.
+        </Alert.Description>
+      </Alert.Root>
+
+      <div class="text-sm text-muted-foreground">
+        <p><strong>What this allows:</strong></p>
+        <ul class="list-disc list-inside mt-2 space-y-1">
+          <li>View your audio assets from your Roblox inventory</li>
+          <li>Auto-fill asset information when selecting from your inventory</li>
+          <li>Streamline the whitelist request process</li>
+        </ul>
+      </div>
+    </div>
+
+    <Dialog.Footer>
+      <Button
+        type="button"
+        variant="outline"
+        onclick={() => (showReauthDialog = false)}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        onclick={handleReauthorization}
+      >
+        Grant Permission
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
