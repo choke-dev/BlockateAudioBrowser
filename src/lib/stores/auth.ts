@@ -14,13 +14,15 @@ interface AuthState {
   authenticated: boolean;
   loading: boolean;
   requiresReauth: boolean;
+  scopes: string | null;
 }
 
 const initialState: AuthState = {
   user: null,
   authenticated: false,
   loading: true,
-  requiresReauth: false
+  requiresReauth: false,
+  scopes: null
 };
 
 function createAuthStore() {
@@ -50,21 +52,24 @@ function createAuthStore() {
               user: data.user,
               authenticated: true,
               loading: false,
-              requiresReauth: false
+              requiresReauth: false,
+              scopes: data.scopes || null
             });
           } else if (data.requiresReauth) {
             set({
               user: null,
               authenticated: false,
               loading: false,
-              requiresReauth: true
+              requiresReauth: true,
+              scopes: null
             });
           } else {
             set({
               user: null,
               authenticated: false,
               loading: false,
-              requiresReauth: false
+              requiresReauth: false,
+              scopes: null
             });
           }
         } else {
@@ -72,7 +77,8 @@ function createAuthStore() {
             user: null,
             authenticated: false,
             loading: false,
-            requiresReauth: false
+            requiresReauth: false,
+            scopes: null
           });
         }
       } catch (error) {
@@ -81,7 +87,8 @@ function createAuthStore() {
           user: null,
           authenticated: false,
           loading: false,
-          requiresReauth: false
+          requiresReauth: false,
+          scopes: null
         });
       }
     },
@@ -132,7 +139,8 @@ function createAuthStore() {
           user: null,
           authenticated: false,
           loading: false,
-          requiresReauth: false
+          requiresReauth: false,
+          scopes: null
         });
         
         if (!response.ok) {
@@ -145,7 +153,8 @@ function createAuthStore() {
           user: null,
           authenticated: false,
           loading: false,
-          requiresReauth: false
+          requiresReauth: false,
+          scopes: null
         });
       }
     },
