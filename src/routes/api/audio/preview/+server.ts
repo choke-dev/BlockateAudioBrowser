@@ -5,6 +5,8 @@ import { checkAudioUrls, getAudios, uploadAudio } from '$lib/server/JukeHostAPI'
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import schema from './schema';
+import { ofetch } from 'ofetch';
+import { json } from '@sveltejs/kit';
 
 const previewHandler: RequestHandler = async (event) => {
     const requestBody = await event.request.json().catch(() => null);
@@ -72,7 +74,7 @@ const previewHandler: RequestHandler = async (event) => {
     // If we have audios to fetch from the proxy
     if (audioIdsToFetch.length > 0) {
         // Fetch audio URLs from the proxy in the main flow
-        const audioUrlsResponse = await fetch('http://109.106.244.58:3789/audio/', {
+        const audioUrlsResponse = await ofetch.raw('http://109.106.244.58:3789/audio/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -89,7 +91,13 @@ const previewHandler: RequestHandler = async (event) => {
             );
         }
 
-        const audioUrls = await audioUrlsResponse.json();
+        const audioUrls = audioUrlsResponse._data;
+        if (audioUrls[0].code) {
+            switch (audioUrls[0].code) {
+                case 403:
+                    return json({ errors: [{ message: `Audio proxy does not have "Use" permissions for this audio.` }] })
+            }
+        }
 
         // Add the proxy URLs to the response dictionary
         for (let i = 0; i < audioUrls.length; i++) {
