@@ -69,13 +69,20 @@ class RobloxOAuthService {
   /**
    * Generate authorization URL for OAuth flow
    */
-  getAuthorizationUrl(state: string, codeChallenge: string, hostname: string, protocol: string = 'https'): string {
+  getAuthorizationUrl(state: string, codeChallenge: string, hostname: string, protocol: string = 'https', additionalScopes?: string[]): string {
     const redirectUri = `${protocol}://${hostname}/api/oauth/roblox/callback`;
+    
+    // Base scopes
+    let scope = 'openid profile';
+    
+    if (additionalScopes && additionalScopes.length > 0) {
+      scope += ' ' + additionalScopes.join(' ');
+    }
     
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: redirectUri,
-      scope: 'openid profile',
+      scope,
       response_type: 'code',
       state,
       code_challenge: codeChallenge,
@@ -84,6 +91,14 @@ class RobloxOAuthService {
     });
 
     return `${this.baseUrl}/v1/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Check if user has specific scope
+   */
+  async hasScope(userId: string, requiredScope: string): Promise<boolean> {
+    const tokens = await this.getStoredTokens(userId);
+    return tokens?.scope?.includes(requiredScope) ?? false;
   }
 
   /**
@@ -258,16 +273,9 @@ class RobloxOAuthService {
   async storeTokens(userId: string, tokens: TokenResponse): Promise<void> {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
     const tokenId = `oauth_${userId}_roblox`;
+    const now = new Date().toISOString();
 
-    // Delete existing tokens for this user and provider
-    await db
-      .delete(oauthTokens)
-      .where(and(
-        eq(oauthTokens.userId, userId),
-        eq(oauthTokens.provider, 'roblox')
-      ));
-
-    // Insert new tokens
+    // Use upsert (insert with ON CONFLICT DO UPDATE) to handle existing tokens
     await db
       .insert(oauthTokens)
       .values({
@@ -278,7 +286,18 @@ class RobloxOAuthService {
         refreshToken: tokens.refresh_token,
         expiresAt: expiresAt.toISOString(),
         scope: tokens.scope,
-        updatedAt: new Date().toISOString()
+        createdAt: now,
+        updatedAt: now
+      })
+      .onConflictDoUpdate({
+        target: oauthTokens.id,
+        set: {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiresAt: expiresAt.toISOString(),
+          scope: tokens.scope,
+          updatedAt: now
+        }
       });
   }
 
