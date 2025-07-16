@@ -6,6 +6,7 @@
   import { auth } from '$lib/stores/auth.js';
   import { notifications } from '$lib/stores/notifications.js';
   import { onDestroy, onMount } from 'svelte';
+  import { Toaster } from "$lib/components/ui/sonner/index";
   import '../app.css';
 
   let { children } = $props();
@@ -50,6 +51,8 @@
     onDestroy(() => clearInterval(versionCheckInterval));
   }
 </script>
+
+<Toaster richColors />
 
 <div class="dark">
   <div class="fixed z-5 w-full backdrop-blur-xl">

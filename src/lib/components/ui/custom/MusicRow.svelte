@@ -6,9 +6,11 @@
   import IcRoundContentCopy from '~icons/ic/round-content-copy';
   import IconTablerChevronDown from '~icons/tabler/chevron-down';
   import IconTablerMusic from '~icons/tabler/music';
+  import { toast } from "svelte-sonner";
 import { slide } from 'svelte/transition';
 import { playingTrackId } from '$lib/stores/playingTrackStore';
 import { audioCache } from '$lib/stores/audioCacheStore';
+    import { FetchError } from 'ofetch';
 
   interface MusicTrack {
     id: string;
@@ -218,66 +220,94 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   }
 
   async function handlePlayPause(event: Event) {
-    event.stopPropagation();
-    
-    if (isPlaying) {
-      // Pause current audio
-      if (audioElement) {
-        audioElement.pause();
-        audioElement = null;
-      }
-      isExpanded = false;
-      onPause?.();
-      playingTrackId.set(null);
-      audioDuration = null;
-      downloadProgress = 0;
-      return;
-    }
+  event.stopPropagation();
 
-    // Only proceed if track is previewable
-    if (!track.isPreviewable) {
-      return;
+  if (isPlaying) {
+    // Pause current audio
+    if (audioElement) {
+      audioElement.pause();
+      audioElement = null;
     }
-
-    isLoadingPreview = true;
-    audioError = null;
+    isExpanded = false;
+    onPause?.();
+    playingTrackId.set(null);
+    audioDuration = null;
     downloadProgress = 0;
-    
-    try {
-      let audioUrl = track.audioUrl;
-      let playSuccess = false;
-
-      // Try to play existing audio URL first
-      if (audioUrl) {
-        playSuccess = await tryPlayAudio(audioUrl, track.id);
-      }
-
-      // If that failed or no URL exists, try to get one from the API
-      if (!playSuccess) {
-        console.log('Fetching new preview URL from API...');
-        const newAudioUrl = await fetchPreviewUrl(track.id);
-        
-        if (newAudioUrl) {
-          audioUrl = newAudioUrl;
-          playSuccess = await tryPlayAudio(audioUrl, track.id);
-        }
-      }
-
-      if (playSuccess) {
-        isExpanded = true;
-        onPlay?.(track);
-        playingTrackId.set(track.id);
-      } else {
-        audioError = 'Audio cannot be played';
-        console.error('Failed to play audio for track:', track.id);
-      }
-    } catch (error) {
-      audioError = 'Audio cannot be played';
-      console.error('Error in handlePlayPause:', error);
-    } finally {
-      isLoadingPreview = false;
-    }
+    return;
   }
+
+  // Only proceed if track is previewable
+  if (!track.isPreviewable) {
+    audioError = 'Preview is not available for this track.';
+    toast.error(audioError);
+    return;
+  }
+
+  isLoadingPreview = true;
+  audioError = null;
+  downloadProgress = 0;
+
+  try {
+    let audioUrl = track.audioUrl;
+    let playSuccess = false;
+
+    // Try to play existing audio URL first
+    if (audioUrl) {
+      playSuccess = await tryPlayAudio(audioUrl, track.id);
+      if (!playSuccess) {
+        console.warn(`Playback failed for cached URL: ${audioUrl}`);
+      }
+    }
+
+    // If that failed or no URL exists, try to get one from the API
+    if (!playSuccess) {
+      console.log('Fetching new preview URL from API...');
+      let newAudioUrl;
+      try {
+        newAudioUrl = await fetchPreviewUrl(track.id);
+      } catch (fetchErr) {
+        if (!(fetchErr instanceof FetchError)) return;
+        audioError = `Could not fetch preview URL: ${fetchErr.message || fetchErr}`;
+        console.error('Error fetching preview URL:', fetchErr);
+        throw fetchErr; // jump to outer catch
+      }
+
+      if (!newAudioUrl) {
+        audioError = 'No preview URL received, this audio may be moderated.';
+        console.error('fetchPreviewUrl returned empty for track:', track.id);
+        throw new Error(audioError);
+      }
+
+      audioUrl = newAudioUrl;
+      playSuccess = await tryPlayAudio(audioUrl, track.id);
+      if (!playSuccess) {
+        console.error(`Playback failed for fetched URL: ${audioUrl}`);
+      }
+    }
+
+    if (playSuccess) {
+      isExpanded = true;
+      onPlay?.(track);
+      playingTrackId.set(track.id);
+    } else {
+      audioError = 'Audio format not supported or playback failed.';
+      console.error('Final play attempt failed for track:', track.id);
+    }
+  } catch (error) {
+    if (!(error instanceof Error)) return;
+    // If we already have a specific message, keep it; otherwise generic fallback
+    if (!audioError) {
+      audioError = `Unexpected error: ${error.message || error}`;
+      console.error('Unexpected error in handlePlayPause:', error);
+    }
+  } finally {
+    isLoadingPreview = false;
+    if (audioError) toast.error(audioError, {
+      duration: 5000
+    });
+  }
+}
+
 
   function handleRowClick() {
     onRowClick?.(track);
