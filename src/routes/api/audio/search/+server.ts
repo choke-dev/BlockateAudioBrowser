@@ -40,6 +40,12 @@ function buildFilterConditions(filters: SearchFilters) {
 				return ilike(audios.name, `%${value}%`);
 			case 'category':
 				return ilike(audios.category, `%${value}%`);
+			case 'tags':
+				// For tags, we search within the text array
+				return sql`EXISTS (
+					SELECT 1 FROM unnest(${audios.tags}) AS tag
+					WHERE tag ILIKE ${'%' + value + '%'}
+				)`;
 			default:
 				throw new Error(`Invalid filter field: ${field}`);
 		}
@@ -108,6 +114,12 @@ async function performFuzzySearch(
 				case 'category':
 					filterClauses.push(sql`category ILIKE ${'%' + value + '%'}`);
 					break;
+				case 'tags':
+					filterClauses.push(sql`EXISTS (
+						SELECT 1 FROM unnest(${audios.tags}) AS tag
+						WHERE tag ILIKE ${'%' + value + '%'}
+					)`);
+					break;
 				default:
 					throw new Error(`Invalid filter field: ${field}`);
 			}
@@ -131,13 +143,18 @@ async function performFuzzySearch(
 	// Execute search and count queries concurrently
 	const [searchResults, countResults] = await Promise.all([
 		db.execute(sql`
-			SELECT id, name, category, is_previewable, whitelister, audio_url, created_at
+			SELECT id, name, category, tags, is_previewable, whitelister, audio_url, created_at
 			FROM ${audios}
 			WHERE audio_visibility = 'PUBLIC'
 			AND audio_lifecycle = 'ACTIVE'
 			AND (
 				name ILIKE ${'%' + query + '%'} OR
-				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
+				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
+				EXISTS (
+					SELECT 1 FROM unnest(tags) AS tag
+					WHERE tag ILIKE ${'%' + query + '%'} OR
+					extensions.SIMILARITY(tag, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
+				)
 			)
 			${filterSql}
 			${sortSql}
@@ -152,7 +169,12 @@ async function performFuzzySearch(
 			AND audio_lifecycle = 'ACTIVE'
 			AND (
 				name ILIKE ${'%' + query + '%'} OR
-				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
+				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
+				EXISTS (
+					SELECT 1 FROM unnest(tags) AS tag
+					WHERE tag ILIKE ${'%' + query + '%'} OR
+					extensions.SIMILARITY(tag, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
+				)
 			)
 			${filterSql}
 		`)
@@ -183,6 +205,7 @@ async function performStandardSearch(
 			id: audios.id,
 			name: audios.name,
 			category: audios.category,
+			tags: audios.tags,
 			is_previewable: audios.isPreviewable,
 			whitelister: audios.whitelister,
 			audio_url: audios.audioUrl,

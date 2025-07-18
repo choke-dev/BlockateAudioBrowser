@@ -19,6 +19,7 @@
     id: string;
     name: string;
     category: string;
+    tags: string[];
     is_previewable: boolean;
     whitelister: string;
     audio_url: string | null;
@@ -39,7 +40,8 @@
     id: string;
     name: string;
     creator: string;
-    tags: string;
+    category: string;
+    tags?: string[];
     length: string;
     duration?: number;
     audioUrl?: string;
@@ -83,7 +85,8 @@
       id: apiTrack.id,
       name: apiTrack.name,
       creator: apiTrack.whitelister || 'Unknown',
-      tags: apiTrack.category || 'Uncategorized',
+      category: apiTrack.category || 'Uncategorized',
+      tags: apiTrack.tags || [],
       length: '0:00', // Will be updated from audio metadata
       audioUrl: apiTrack.audio_url || undefined,
       isPreviewable: apiTrack.is_previewable

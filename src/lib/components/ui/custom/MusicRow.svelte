@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
+  import * as Popover from '$lib/components/ui/popover';
   import ProgressBar from './ProgressBar.svelte';
   import IcRoundPlayArrow from '~icons/ic/round-play-arrow';
   import IcRoundPause from '~icons/ic/round-pause';
@@ -7,7 +8,7 @@
   import IconTablerChevronDown from '~icons/tabler/chevron-down';
   import IconTablerMusic from '~icons/tabler/music';
   import { toast } from "svelte-sonner";
-import { slide } from 'svelte/transition';
+  import { slide } from 'svelte/transition';
 import { playingTrackId } from '$lib/stores/playingTrackStore';
 import { audioCache } from '$lib/stores/audioCacheStore';
     import { FetchError } from 'ofetch';
@@ -16,7 +17,8 @@ import { audioCache } from '$lib/stores/audioCacheStore';
     id: string;
     name: string;
     creator: string;
-    tags: string;
+    category: string;
+    tags?: string[];
     length: string;
     duration?: number;
     audioUrl?: string;
@@ -377,7 +379,7 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   aria-label="Expand track details for {track.name} by {track.creator}"
 >
   <!-- Regular track row -->
-  <div class="grid grid-cols-[48px_132px_1fr_1fr] gap-4 items-center px-4 py-1">
+  <div class="grid grid-cols-[48px_132px_1fr_1fr_200px] gap-4 items-center px-4 py-1">
     {#if track.isPreviewable}
       <div class="relative ml-2">
         <Button
@@ -428,7 +430,46 @@ import { audioCache } from '$lib/stores/audioCacheStore';
     </div>
     
     <div class="text-sm text-muted-foreground truncate">
-      {track.tags}
+      {track.category}
+    </div>
+    
+    <!-- Tags Column -->
+    <div class="flex items-center gap-1 min-w-0">
+      {#if track.tags && track.tags.length > 0}
+        <!-- Show first 3 tags -->
+        {#each track.tags.slice(0, 3) as tag}
+          <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded text-xs whitespace-nowrap">
+            {tag}
+          </span>
+        {/each}
+        
+        <!-- Show more button if there are more than 3 tags -->
+        {#if track.tags.length > 3}
+          <Popover.Root>
+            <Popover.Trigger>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                +{track.tags.length - 3} more
+              </Button>
+            </Popover.Trigger>
+            <Popover.Content class="w-80 p-3">
+              <div class="space-y-2">
+                <h4 class="font-medium text-sm">All Tags</h4>
+                <div class="flex flex-wrap gap-1">
+                  {#each track.tags as tag}
+                    <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded text-xs">
+                      {tag}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+            </Popover.Content>
+          </Popover.Root>
+        {/if}
+      {/if}
     </div>
   </div>
 

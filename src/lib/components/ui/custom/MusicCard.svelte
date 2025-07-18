@@ -12,7 +12,8 @@
     id: string;
     name: string;
     creator: string;
-    tags: string;
+    category: string;
+    tags?: string[];
     length: string;
     duration?: number;
     audioUrl?: string;
@@ -378,8 +379,22 @@
   <div class="space-y-2">
     <div class="text-sm">
       <span class="text-muted-foreground">Category: </span>
-      <span class="text-foreground font-medium">{track.tags}</span>
+      <span class="text-foreground font-medium">{track.category}</span>
     </div>
+    
+    <!-- Tags Display -->
+    {#if track.tags && track.tags.length > 0}
+      <div class="text-sm">
+        <span class="text-muted-foreground">Tags: </span>
+        <div class="flex flex-wrap gap-1 mt-1">
+          {#each track.tags as tag}
+            <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+              {tag}
+            </span>
+          {/each}
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Expanded progress bar section -->

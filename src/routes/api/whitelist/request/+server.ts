@@ -18,7 +18,7 @@ export const POST: RequestHandler = async (event) => {
         
         // Parse and validate request body
         const body = await event.request.json();
-        const { audioId, audioName, audioCategory, isPrivate } = WhitelistRequestSchema.parse(body);
+        const { audioId, audioName, audioCategory, isPrivate, tags } = WhitelistRequestSchema.parse(body);
         
         const [existingRequest, foundAudio] = await Promise.all([
             db.query.whitelistRequests.findFirst({
@@ -118,6 +118,7 @@ export const POST: RequestHandler = async (event) => {
             audioId: audioId.toString(),
             name: audioName,
             category: audioCategory,
+            tags: tags || [],
             userId: user.id,
             audioVisibility: isPrivate ? 'PRIVATE' : 'PUBLIC',
             status: 'PENDING',

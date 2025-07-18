@@ -7,7 +7,8 @@
     id: string;
     name: string;
     creator: string;
-    tags: string;
+    category: string;
+    tags?: string[];
     length: string;
     duration?: number;
     audioUrl?: string;

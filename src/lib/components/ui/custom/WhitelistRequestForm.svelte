@@ -12,6 +12,12 @@
   import LucidePlus from '~icons/lucide/plus';
   import LucideShield from '~icons/lucide/shield';
   import AudioAssetSelector from './AudioAssetSelector.svelte';
+  import TagInput from './TagInput.svelte';
+
+  interface Tag {
+    id: string;
+    name: string;
+  }
 
   let { triggerClass = '' } = $props();
 
@@ -24,7 +30,8 @@
     audioId: '',
     audioName: '',
     audioCategory: '',
-    isPrivate: false
+    isPrivate: false,
+    tags: [] as Tag[]
   });
 
   // Form errors
@@ -50,6 +57,7 @@
     formData.audioName = '';
     formData.audioCategory = '';
     formData.isPrivate = false;
+    formData.tags = [];
     errors.audioId = '';
     errors.audioName = '';
     errors.audioCategory = '';
@@ -93,13 +101,20 @@
     resetMessages();
 
     try {
+      // Prepare the request data with tags as string array
+      const requestData = {
+        ...formData,
+        tags: formData.tags.map(tag => tag.name)
+      };
+
+      // Submit the whitelist request with tags included
       const response = await ofetch.raw('/api/whitelist/request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestData)
       });
 
       if (response.ok) {
@@ -240,6 +255,16 @@
               </Alert.Root>
             {/if}
           </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-medium">Tags</label>
+          <TagInput
+            bind:tags={formData.tags}
+            placeholder="Add tags to describe this audio..."
+            maxTags={16}
+            readonly={isSubmitting}
+          />
         </div>
 
         <Dialog.Footer>

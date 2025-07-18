@@ -12,6 +12,7 @@
     const availableFilters = [
         { label: "Category", value: "category", inputValue: "" },
         { label: "Whitelister", value: "whitelisterName", inputValue: "" },
+        { label: "Tags", value: "tags", inputValue: "" },
     ];
 
     // State for the filters
