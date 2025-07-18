@@ -196,6 +196,7 @@
             placeholder="Enter audio name"
             type="text"
             class={errors.audioName ? 'border-red-500' : ''}
+            disabled={isSubmitting}
           />
           <p class="text-muted-foreground text-xs">The display name for the audio file</p>
           {#if errors.audioName}
@@ -211,6 +212,7 @@
             placeholder="Enter audio category (e.g., Music, Sound Effects, etc.)"
             type="text"
             class={errors.audioCategory ? 'border-red-500' : ''}
+            disabled={isSubmitting}
           />
           <p class="text-muted-foreground text-xs">
             Choose any category that best describes this audio
@@ -222,7 +224,7 @@
 
         <div class="space-y-2">
           <div class="flex items-center space-x-2">
-            <Checkbox id="isPrivate" bind:checked={formData.isPrivate} />
+            <Checkbox id="isPrivate" bind:checked={formData.isPrivate} disabled={isSubmitting} />
             <label for="isPrivate" class="text-sm font-normal">Is Private</label>
           </div>
           <div class="space-y-1">
