@@ -388,7 +388,7 @@
         <span class="text-muted-foreground">Tags: </span>
         <div class="flex flex-wrap gap-1 mt-1">
           {#each track.tags as tag}
-            <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+            <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded-md text-xs max-w-[120px] truncate" title={tag}>
               {tag}
             </span>
           {/each}

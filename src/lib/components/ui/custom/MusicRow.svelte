@@ -434,17 +434,21 @@ import { audioCache } from '$lib/stores/audioCacheStore';
     </div>
     
     <!-- Tags Column -->
-    <div class="flex items-center gap-1 min-w-0">
+    <div class="flex items-center gap-1 min-w-0 overflow-hidden">
       {#if track.tags && track.tags.length > 0}
-        <!-- Show first 3 tags -->
-        {#each track.tags.slice(0, 3) as tag}
+        {@const maxTagLength = 12}
+        {@const visibleTags = track.tags.filter((tag, index) => tag.length <= maxTagLength && index < 3)}
+        {@const hiddenTags = track.tags.filter((tag, index) => tag.length > maxTagLength || index >= 3)}
+        
+        <!-- Show visible tags -->
+        {#each visibleTags as tag}
           <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded text-xs whitespace-nowrap">
             {tag}
           </span>
         {/each}
         
-        <!-- Show more button if there are more than 3 tags -->
-        {#if track.tags.length > 3}
+        <!-- Show more button if there are hidden tags -->
+        {#if hiddenTags.length > 0}
           <Popover.Root>
             <Popover.Trigger>
               <Button
@@ -452,7 +456,7 @@ import { audioCache } from '$lib/stores/audioCacheStore';
                 size="sm"
                 class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
               >
-                +{track.tags.length - 3} more
+                +{hiddenTags.length} more
               </Button>
             </Popover.Trigger>
             <Popover.Content class="w-80 p-3">
