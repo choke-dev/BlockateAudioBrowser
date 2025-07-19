@@ -120,13 +120,13 @@
         <span class="ml-2 hidden sm:inline">My Requests</span>
       </Button>
     </Dialog.Trigger>
-    <Dialog.Content class="max-h-[80vh] overflow-hidden sm:max-w-[600px]">
-      <Dialog.Header>
+    <Dialog.Content class="flex max-h-[80vh] flex-col sm:max-w-[600px]">
+      <Dialog.Header class="flex-shrink-0">
         <Dialog.Title>My Whitelist Requests</Dialog.Title>
         <Dialog.Description>View the status of your audio whitelist requests.</Dialog.Description>
       </Dialog.Header>
 
-      <div class="max-h-[60vh] space-y-4 overflow-y-auto">
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto">
         {#if isLoading}
           <div class="flex items-center justify-center py-8">
             <div class="text-muted-foreground">Loading requests...</div>
@@ -188,7 +188,7 @@
 
       <!-- Pagination Controls -->
       {#if pagination.totalPages > 1}
-        <div class="flex items-center justify-between border-t pt-4">
+        <div class="flex flex-shrink-0 items-center justify-between border-t pt-4">
           <div class="text-muted-foreground text-sm">
             Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(
               pagination.page * pagination.limit,
@@ -221,7 +221,7 @@
         </div>
       {/if}
 
-      <Dialog.Footer>
+      <Dialog.Footer class="flex-shrink-0">
         <Button type="button" variant="outline" onclick={() => (open = false)}>Close</Button>
         <Button type="button" onclick={() => loadRequests()} disabled={isLoading}>Refresh</Button>
       </Dialog.Footer>
