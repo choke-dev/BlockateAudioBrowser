@@ -11,9 +11,6 @@
 
     const availableFilters = [
         { label: "Category", value: "category", inputValue: "" },
-        { label: "Whitelister", value: "whitelisterName", inputValue: "" },
-        { label: "Name", value: "name", inputValue: "" },
-        { label: "ID", value: "id", inputValue: "" },
     ];
 
     // Props
