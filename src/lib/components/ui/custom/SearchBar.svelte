@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Input } from '$lib/components/ui/input';
   import LucideSearch from '~icons/lucide/search';
+  import LucideX from '~icons/lucide/x';
   import Button from '../button/button.svelte';
 
   let {
@@ -24,16 +25,33 @@
       onSearch?.(value);
     }
   }
+
+  function handleClear() {
+    value = '';
+    onSearch?.('');
+  }
 </script>
 
 <div class="flex gap-x-2 w-full max-w-full">
   <form class="flex gap-x-2 w-full max-w-full" onsubmit={handleSubmit}>
-    <Input
-      bind:value
-      {placeholder}
-      class="w-full bg-background border-border text-foreground placeholder:text-muted-foreground px-4 py-2 rounded-md"
-      onkeydown={handleKeydown}
-    />
+    <div class="relative w-full">
+      <Input
+        bind:value
+        {placeholder}
+        class="w-full bg-background border-border text-foreground placeholder:text-muted-foreground px-4 pr-10 py-2 rounded-md"
+        onkeydown={handleKeydown}
+      />
+      {#if value}
+        <Button
+          size="icon"
+          variant="ghost"
+          onclick={handleClear}
+          class="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <LucideX class="size-4" />
+        </Button>
+      {/if}
+    </div>
     <Button size="icon" type="submit">
       <LucideSearch class="size-5" />
     </Button>
