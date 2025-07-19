@@ -3,7 +3,9 @@
   import * as Dialog from '$lib/components/ui/dialog/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { onMount } from 'svelte';
+  import * as Alert from '$lib/components/ui/alert/index.js';
   import LucideList from '~icons/lucide/list';
+  import LucideX from '~icons/lucide/x';
 
   let { triggerClass = '' } = $props();
 
@@ -28,6 +30,7 @@
     status: 'pending' | 'approved' | 'rejected';
     createdAt: string;
     updatedAt: string;
+    rejectionReason?: string;
   }
 
   async function loadRequests(page = 1) {
@@ -114,18 +117,16 @@
     <Dialog.Trigger>
       <Button variant="outline" class={triggerClass} size="sm">
         <LucideList class="size-4" />
-        <span class="hidden sm:inline ml-2">My Requests</span>
+        <span class="ml-2 hidden sm:inline">My Requests</span>
       </Button>
     </Dialog.Trigger>
-    <Dialog.Content class="sm:max-w-[600px] max-h-[80vh] overflow-hidden">
+    <Dialog.Content class="max-h-[80vh] overflow-hidden sm:max-w-[600px]">
       <Dialog.Header>
         <Dialog.Title>My Whitelist Requests</Dialog.Title>
-        <Dialog.Description>
-          View the status of your audio whitelist requests.
-        </Dialog.Description>
+        <Dialog.Description>View the status of your audio whitelist requests.</Dialog.Description>
       </Dialog.Header>
-      
-      <div class="overflow-y-auto max-h-[60vh] space-y-4">
+
+      <div class="max-h-[60vh] space-y-4 overflow-y-auto">
         {#if isLoading}
           <div class="flex items-center justify-center py-8">
             <div class="text-muted-foreground">Loading requests...</div>
@@ -134,22 +135,28 @@
           <div class="flex items-center justify-center py-8">
             <div class="text-center">
               <p class="text-muted-foreground mb-2">No requests found</p>
-              <p class="text-sm text-muted-foreground">You haven't submitted any whitelist requests yet.</p>
+              <p class="text-muted-foreground text-sm">
+                You haven't submitted any whitelist requests yet.
+              </p>
             </div>
           </div>
         {:else}
           {#each requests as request (request.id)}
-            <div class="border rounded-lg p-4 space-y-3">
+            <div class="space-y-3 rounded-lg border p-4">
               <div class="flex items-start justify-between">
                 <div class="space-y-1">
                   <h3 class="font-medium">{request.audioName}</h3>
-                  <p class="text-sm text-muted-foreground">ID: {request.audioId}</p>
+                  <p class="text-muted-foreground text-sm">ID: {request.audioId}</p>
                 </div>
-                <span class="px-2 py-1 rounded-full text-xs font-medium {getStatusColor(request.status)}">
+                <span
+                  class="rounded-full px-2 py-1 text-xs font-medium {getStatusColor(
+                    request.status
+                  )}"
+                >
                   {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                 </span>
               </div>
-              
+
               <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span class="text-muted-foreground">Category:</span>
@@ -160,8 +167,15 @@
                   <span class="ml-1">{request.isPrivate ? 'Private' : 'Public'}</span>
                 </div>
               </div>
-              
-              <div class="text-xs text-muted-foreground">
+
+              {#if request.status === 'rejected' && request.rejectionReason}
+                <Alert.Root class="mt-2" variant="error">
+                  <LucideX />
+                  <Alert.Description>Reason: {request.rejectionReason}</Alert.Description>
+                </Alert.Root>
+              {/if}
+
+              <div class="text-muted-foreground text-xs">
                 <div>Submitted: {formatDate(request.createdAt)}</div>
                 {#if request.updatedAt !== request.createdAt}
                   <div>Updated: {formatDate(request.updatedAt)}</div>
@@ -175,8 +189,11 @@
       <!-- Pagination Controls -->
       {#if pagination.totalPages > 1}
         <div class="flex items-center justify-between border-t pt-4">
-          <div class="text-sm text-muted-foreground">
-            Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.totalCount)} of {pagination.totalCount} requests
+          <div class="text-muted-foreground text-sm">
+            Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(
+              pagination.page * pagination.limit,
+              pagination.totalCount
+            )} of {pagination.totalCount} requests
           </div>
           <div class="flex items-center space-x-2">
             <Button
@@ -205,12 +222,8 @@
       {/if}
 
       <Dialog.Footer>
-        <Button type="button" variant="outline" onclick={() => open = false}>
-          Close
-        </Button>
-        <Button type="button" onclick={() => loadRequests()} disabled={isLoading}>
-          Refresh
-        </Button>
+        <Button type="button" variant="outline" onclick={() => (open = false)}>Close</Button>
+        <Button type="button" onclick={() => loadRequests()} disabled={isLoading}>Refresh</Button>
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>

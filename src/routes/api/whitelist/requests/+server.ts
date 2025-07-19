@@ -41,7 +41,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
         status: whitelistRequests.status,
         createdAt: whitelistRequests.createdAt,
         updatedAt: whitelistRequests.updatedAt,
-        acknowledged: whitelistRequests.acknowledged
+        acknowledged: whitelistRequests.acknowledged,
+        rejectionReason: whitelistRequests.rejectionReason
       })
       .from(whitelistRequests)
       .where(eq(whitelistRequests.userId, user.id))
@@ -60,7 +61,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
       status: request.status.toLowerCase(),
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
-      acknowledged: request.acknowledged
+      acknowledged: request.acknowledged,
+      rejectionReason: request.rejectionReason
     }));
 
     return json({

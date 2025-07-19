@@ -58,7 +58,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
         name: whitelistRequests.name,
         status: whitelistRequests.status,
         updatedAt: whitelistRequests.updatedAt,
-        userNotified: whitelistRequests.userNotified
+        userNotified: whitelistRequests.userNotified,
+        rejectionReason: whitelistRequests.rejectionReason
       })
       .from(whitelistRequests)
       .where(statusConditions)

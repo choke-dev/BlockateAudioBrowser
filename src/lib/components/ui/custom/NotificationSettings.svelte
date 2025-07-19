@@ -9,6 +9,7 @@
   import LucideBell from '~icons/lucide/bell';
   import LucideBellOff from '~icons/lucide/bell-off';
   import LucideSettings from '~icons/lucide/settings';
+  import LucideX from '~icons/lucide/x';
   import LucideRefreshCw from '~icons/lucide/refresh-cw';
   import { onMount } from 'svelte';
 
@@ -290,6 +291,12 @@
                         <p class="text-muted-foreground mt-1 text-xs">
                           ID: {notification.audioId} • {formatDate(notification.timestamp)}
                         </p>
+                        {#if notification.status === 'rejected' && notification.rejectionReason}
+                          <Alert.Root class="mt-2" variant="error">
+                            <LucideX />
+                            <Alert.Description>Reason: {notification.rejectionReason}</Alert.Description>
+                          </Alert.Root>
+                        {/if}
                       </div>
                     </div>
                   </div>

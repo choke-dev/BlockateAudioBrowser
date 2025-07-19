@@ -14,6 +14,7 @@ export interface WhitelistNotification {
   status: 'approved' | 'rejected';
   timestamp: string;
   read: boolean;
+  rejectionReason?: string;
 }
 
 interface NotificationState {
@@ -121,7 +122,11 @@ function createNotificationStore() {
         ? '✅ Whitelist request approved!'
         : '❌ Whitelist request rejected';
       
-      const body = `Your request for "${notification.audioName}" (ID: ${notification.audioId}) has been ${notification.status}.`;
+      let body = `Your request for "${notification.audioName}" (ID: ${notification.audioId}) has been ${notification.status}.`;
+      
+      if (notification.status === 'rejected' && notification.rejectionReason) {
+        body += `\n\nReason: ${notification.rejectionReason}`;
+      }
 
       const browserNotification = new Notification(title, {
         body,

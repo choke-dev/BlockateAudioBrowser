@@ -80,6 +80,7 @@ export const whitelistRequests = pgTable("whitelist_requests", {
 	acknowledged: boolean().default(false).notNull(),
 	userNotified: boolean("user_notified").default(false).notNull(),
 	audioUrl: text("audio_url").notNull(),
+	rejectionReason: text("rejection_reason"),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],

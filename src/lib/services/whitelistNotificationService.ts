@@ -8,6 +8,7 @@ interface WhitelistStatusUpdate {
   name: string;
   status: 'APPROVED' | 'REJECTED';
   updatedAt: string;
+  rejectionReason?: string;
 }
 
 class WhitelistNotificationService {
@@ -281,7 +282,8 @@ class WhitelistNotificationService {
       notifications.showNotification({
         audioId: update.audioId,
         audioName: update.name,
-        status: update.status.toLowerCase() as 'approved' | 'rejected'
+        status: update.status.toLowerCase() as 'approved' | 'rejected',
+        rejectionReason: update.rejectionReason
       });
     } else {
       // Only add to notification history if browser notifications are disabled
@@ -293,7 +295,8 @@ class WhitelistNotificationService {
         audioName: update.name,
         status: status,
         timestamp: update.updatedAt,
-        read: false
+        read: false,
+        rejectionReason: update.rejectionReason
       };
       notifications.addNotification(notificationToAdd);
     }
