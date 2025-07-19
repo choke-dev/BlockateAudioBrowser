@@ -455,6 +455,7 @@ import { audioCache } from '$lib/stores/audioCacheStore';
                 variant="ghost"
                 size="sm"
                 class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onclick={(e) => e.stopPropagation()}
               >
                 +{hiddenTags.length} more
               </Button>
