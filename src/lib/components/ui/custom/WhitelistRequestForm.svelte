@@ -180,7 +180,7 @@
         class="space-y-4"
       >
         <div class="space-y-2">
-          <label for="audioId" class="text-sm font-medium">Audio ID</label>
+          <label for="audioId" class="text-sm font-medium">Audio ID <span class="text-red-500">*</span> </label>
           <div class="flex gap-2">
             <Input
               id="audioId"
@@ -204,7 +204,7 @@
         </div>
 
         <div class="space-y-2">
-          <label for="audioName" class="text-sm font-medium">Audio Name</label>
+          <label for="audioName" class="text-sm font-medium">Audio Name <span class="text-red-500">*</span> </label>
           <Input
             id="audioName"
             bind:value={formData.audioName}
@@ -220,7 +220,7 @@
         </div>
 
         <div class="space-y-2">
-          <label for="audioCategory" class="text-sm font-medium">Audio Category</label>
+          <label for="audioCategory" class="text-sm font-medium">Audio Category <span class="text-red-500">*</span> </label>
           <Input
             id="audioCategory"
             bind:value={formData.audioCategory}
