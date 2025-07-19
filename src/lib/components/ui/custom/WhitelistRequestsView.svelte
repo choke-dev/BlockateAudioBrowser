@@ -92,11 +92,11 @@
   function getStatusColor(status: string) {
     switch (status) {
       case 'approved':
-        return 'text-green-600 bg-green-100';
+        return 'bg-green-100 text-green-800 dark:bg-green-975 dark:text-green-500 border-green-200 dark:border-green-900';
       case 'rejected':
-        return 'text-red-600 bg-red-100';
+        return 'bg-rose-100 text-rose-800 dark:bg-rose-975 dark:text-rose-500 border-rose-200 dark:border-rose-900';
       default:
-        return 'text-yellow-600 bg-yellow-100';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-975 dark:text-yellow-500 border-yellow-200 dark:border-yellow-900';
     }
   }
 
