@@ -450,12 +450,11 @@ import { audioCache } from '$lib/stores/audioCacheStore';
         <!-- Show more button if there are hidden tags -->
         {#if hiddenTags.length > 0}
           <Popover.Root>
-            <Popover.Trigger>
+            <Popover.Trigger onclick={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="sm"
                 class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onclick={(e) => e.stopPropagation()}
               >
                 +{hiddenTags.length} more
               </Button>
