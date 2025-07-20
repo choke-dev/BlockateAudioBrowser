@@ -1,5 +1,5 @@
-const CACHE_NAME = 'blockate-audio-browser-v1';
-const STATIC_CACHE_NAME = 'blockate-static-v1';
+const CACHE_NAME = 'blockate-audio-browser-v2';
+const STATIC_CACHE_NAME = 'blockate-static-v2';
 
 // Resources to cache immediately when the service worker is installed
 const STATIC_RESOURCES = [
@@ -11,17 +11,23 @@ const STATIC_RESOURCES = [
 // Cache configuration with patterns and durations (in milliseconds)
 // null duration = no expiration, number = milliseconds until expiration, 0 = don't cache
 const CACHE_CONFIG = [
-  // Network-first patterns (cache as fallback for offline use)
-  { pattern: /^\/api\//, strategy: 'network-first', duration: 0 },
+  // Network-first patterns with offline caching for PWA functionality
+  { pattern: /^\/api\/audio\/search/, strategy: 'network-first', duration: 60 * 60 * 1000 }, // Cache search results for 1 hour
+  { pattern: /^\/api\/audio\/preview/, strategy: 'network-first', duration: 24 * 60 * 60 * 1000 }, // Cache preview URLs for 24 hours
+  { pattern: /^\/api\/audio\/info/, strategy: 'network-first', duration: 24 * 60 * 60 * 1000 }, // Cache audio info for 24 hours
+  { pattern: /^\/api\/audio\/duration/, strategy: 'network-first', duration: 7 * 24 * 60 * 60 * 1000 }, // Cache duration for 7 days
+  { pattern: /^\/api\//, strategy: 'network-first', duration: 0 }, // Other API endpoints - no cache
   { pattern: /^\/auth\//, strategy: 'network-first', duration: 0 },
-  { pattern: /\.json$/, strategy: 'network-first', duration: 0 },
-  { pattern: /\.css$/, strategy: 'network-first', duration: 0 },
-  { pattern: /\.js$/, strategy: 'network-first', duration: 0 },
+  { pattern: /\.json$/, strategy: 'network-first', duration: 60 * 60 * 1000 }, // Cache JSON for 1 hour
+  { pattern: /\.css$/, strategy: 'network-first', duration: 24 * 60 * 60 * 1000 }, // Cache CSS for 24 hours
+  { pattern: /\.js$/, strategy: 'network-first', duration: 24 * 60 * 60 * 1000 }, // Cache JS for 24 hours
   
   // Cache-first patterns (prioritize cached content)
   { pattern: /\.(woff|woff2|ttf|eot)$/, strategy: 'cache-first', duration: 30 * 24 * 60 * 60 * 1000 },
   { pattern: /\.(png|jpg|jpeg|gif|svg|ico)$/, strategy: 'cache-first', duration: 7 * 24 * 60 * 60 * 1000 },
   { pattern: /^https:\/\/audio\.jukehost\.co\.uk\//, strategy: 'cache-first', duration: 14 * 24 * 60 * 60 * 1000 },
+  { pattern: /^https:\/\/fonts\.googleapis\.com\//, strategy: 'cache-first', duration: 30 * 24 * 60 * 60 * 1000 },
+  { pattern: /^https:\/\/fonts\.gstatic\.com\//, strategy: 'cache-first', duration: 30 * 24 * 60 * 60 * 1000 },
 ];
 
 // Legacy arrays for backward compatibility (derived from CACHE_CONFIG)
@@ -116,9 +122,47 @@ function getCacheConfig(url, pathname) {
 }
 
 /**
+ * Check storage quota before caching
+ */
+async function checkStorageQuota() {
+  if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
+    return true; // If we can't check, assume it's okay
+  }
+
+  try {
+    const estimate = await navigator.storage.estimate();
+    const usage = estimate.usage || 0;
+    const quota = estimate.quota || 0;
+    const usagePercentage = quota > 0 ? (usage / quota) * 100 : 0;
+
+    if (usagePercentage >= 95) {
+      console.warn('Service Worker: Storage quota critical, skipping cache');
+      // Trigger cleanup
+      await cleanupExpiredCacheEntries();
+      return false;
+    } else if (usagePercentage >= 85) {
+      console.warn('Service Worker: Storage quota high, cleaning up');
+      await cleanupExpiredCacheEntries();
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Service Worker: Failed to check storage quota:', error);
+    return true; // If check fails, proceed with caching
+  }
+}
+
+/**
  * Cache a response with expiration metadata
  */
 async function cacheResponseWithExpiration(cache, request, response) {
+  // Check storage quota before caching
+  const quotaOk = await checkStorageQuota();
+  if (!quotaOk) {
+    console.log('Service Worker: Skipping cache due to quota limits:', request.url);
+    return;
+  }
+
   const config = getCacheConfig(request.url, new URL(request.url).pathname);
   const duration = config?.duration;
   

@@ -6,6 +6,7 @@
 
   import { playingTrackId } from '$lib/stores/playingTrackStore';
   import { readSearchParams, updateSearchParams, type FilterData, type SortData } from '$lib/utils/urlParams';
+  import { offlineStore } from '$lib/stores/offlineStore';
   
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
@@ -13,6 +14,8 @@
   import SearchBar from '$lib/components/ui/custom/SearchBar.svelte';
   import SortButton from '$lib/components/ui/custom/SortButton.svelte';
   import FilterButton from '$lib/components/ui/custom/FilterButton.svelte';
+
+  import LucideWifiOff from '~icons/lucide/wifi-off';
 
   // API Response types
   interface AudioTrack {
@@ -72,6 +75,7 @@
   let isLoading = $state(false);
   let error = $state<string | null>(null);
   let hasPerformedInitialSearch = $state(false);
+  let isOfflineMode = $state(false);
   
   // URL parameter synchronization flag
   let skipUrlUpdate = $state(false);
@@ -93,7 +97,7 @@
     };
   }
 
-  // Perform search API call
+  // Perform search API call with offline support
   async function performSearch() {
     try {
       // Validate inputs
@@ -105,6 +109,42 @@
       error = null;
       playingTrackId.set(null);
 
+      // Check if we're offline first
+      const offlineState = $offlineStore;
+      
+      // Try to get cached results first if offline or as fallback
+      if (!offlineState.isOnline) {
+        console.log('Offline mode: Checking cached search results');
+        const cachedResults = await offlineStore.getSearchResults(
+          validatedQuery,
+          appliedFilters,
+          appliedSort,
+          validatedPage
+        );
+
+        if (cachedResults) {
+          console.log('Using cached search results');
+          tracks = cachedResults.results.map(track => convertToMusicTrack(track));
+          totalResults = cachedResults.total;
+          totalPages = Math.ceil(cachedResults.total / RESULTS_PER_PAGE);
+          isOfflineMode = true;
+          isLoading = false;
+          return;
+        } else {
+          // No cached results available
+          error = 'No cached results available for this search. Please connect to the internet to search.';
+          tracks = [];
+          totalResults = 0;
+          totalPages = 1;
+          isOfflineMode = true;
+          isLoading = false;
+          return;
+        }
+      }
+
+      // Online mode: Try network request
+      isOfflineMode = false;
+      
       // Build request body
       const requestBody = {
         filters: appliedFilters,
@@ -137,9 +177,67 @@
       tracks = data.items.map(track => convertToMusicTrack(track));
       totalResults = data.total;
       totalPages = Math.ceil(data.total / RESULTS_PER_PAGE);
+
+      // Cache the search results for offline use
+      try {
+        await offlineStore.cacheSearchResults(
+          validatedQuery,
+          appliedFilters,
+          appliedSort,
+          validatedPage,
+          data.items,
+          data.total,
+          1 // Cache for 1 hour
+        );
+
+        // Also cache individual audio metadata
+        for (const item of data.items) {
+          await offlineStore.cacheAudioMetadata({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            tags: item.tags,
+            is_previewable: item.is_previewable,
+            audio_url: item.audio_url,
+            created_at: item.created_at
+          });
+        }
+        
+        console.log('Cached search results and audio metadata for offline use');
+      } catch (cacheError) {
+        console.warn('Failed to cache search results:', cacheError);
+      }
       
     } catch (err) {
       console.error('Search error:', err);
+      
+      // If network failed, try to get cached results as fallback
+      if (!isOfflineMode) {
+        console.log('Network failed, trying cached results as fallback');
+        try {
+          const cachedResults = await offlineStore.getSearchResults(
+            searchQuery,
+            appliedFilters,
+            appliedSort,
+            currentPage
+          );
+
+          if (cachedResults) {
+            console.log('Using cached results as fallback');
+            tracks = cachedResults.results.map(track => convertToMusicTrack(track));
+            totalResults = cachedResults.total;
+            totalPages = Math.ceil(cachedResults.total / RESULTS_PER_PAGE);
+            isOfflineMode = true;
+            error = 'Using cached results (offline mode)';
+            isLoading = false;
+            return;
+          }
+        } catch (cacheError) {
+          console.warn('Failed to get cached results:', cacheError);
+        }
+      }
+
+      // Handle errors
       if (err instanceof z.ZodError) {
         error = err.issues[0].message;
       } else if (err instanceof Error) {
@@ -264,7 +362,7 @@
 </script>
 
 <div class="min-h-screen bg-background w-full text-foreground">
-  <div class="w-full py-4 px-4 md:py-8 md:px-8">
+  <div class="w-full py-4 px-2 sm:px-4 md:py-8 md:px-8">
     <!-- Page Header -->
     <div class="mb-6 md:mb-8">
       <!-- Search and Filter Controls -->
@@ -280,13 +378,23 @@
 
       <!-- Results Info -->
       <div class="mb-4">
-        <div class="text-sm text-muted-foreground">
+        <div class="text-sm text-muted-foreground flex items-center gap-2">
           {#if isLoading}
             Loading...
           {:else if error}
             <span class="text-red-500">Error: {error}</span>
           {:else}
-            Showing {tracks.length} of {totalResults} results
+            <span>Showing {tracks.length} of {totalResults} results</span>
+            {#if isOfflineMode}
+              <span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200 text-xs rounded-full">
+                📡 Offline Mode
+              </span>
+            {/if}
+            {#if !$offlineStore.isOnline}
+              <span class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 text-xs rounded-full">
+                <LucideWifiOff /> No Internet
+              </span>
+            {/if}
           {/if}
         </div>
       </div>

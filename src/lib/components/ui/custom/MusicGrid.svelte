@@ -90,7 +90,7 @@
 
 {#if isMobile}
   <!-- Mobile Card Layout -->
-  <div class="grid gap-4 sm:grid-cols-1">
+  <div class="grid gap-4 grid-cols-1 w-full">
     {#each tracks as track (track.id)}
       <MusicCard
         {track}

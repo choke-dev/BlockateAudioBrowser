@@ -5,6 +5,7 @@
   import { audioCache } from '$lib/stores/audioCacheStore';
   import { auth } from '$lib/stores/auth.js';
   import { notifications } from '$lib/stores/notifications.js';
+  import { offlineStore } from '$lib/stores/offlineStore';
   import { onDestroy, onMount } from 'svelte';
   import { Toaster } from "$lib/components/ui/sonner/index";
   import '../app.css';
@@ -35,6 +36,9 @@
       
       // Initialize notification system
       await notifications.init();
+      
+      // Initialize offline store
+      await offlineStore.init();
       
       if (await updated.check()) {
         location.reload();
