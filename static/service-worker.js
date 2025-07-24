@@ -4,8 +4,10 @@ const STATIC_CACHE_NAME = 'blockate-static-v2';
 // Resources to cache immediately when the service worker is installed
 const STATIC_RESOURCES = [
   '/',
+  '/offline',
   '/favicon.ico',
   '/audiodb.png',
+  '/manifest.json',
 ];
 
 // Cache configuration with patterns and durations (in milliseconds)
@@ -283,9 +285,28 @@ async function networkFirstStrategy(request) {
       return cachedResponse;
     }
     
-    // If not in cache either, return a fallback response for navigation requests
+    // If not in cache either, check if we have a cached app shell for navigation requests
     if (request.mode === 'navigate') {
-      console.log('Service Worker: Serving offline fallback for navigation');
+      console.log('Service Worker: Navigation request failed, trying to serve cached app shell');
+      
+      // Try to get the cached root page (app shell)
+      const appShellRequest = new Request('/', {
+        method: 'GET',
+        headers: request.headers,
+        mode: 'navigate',
+        credentials: request.credentials,
+        redirect: 'manual'
+      });
+      
+      const cachedAppShell = await getCachedResponseIfValid(cache, appShellRequest);
+      
+      if (cachedAppShell) {
+        console.log('Service Worker: Serving cached app shell for offline navigation');
+        return cachedAppShell;
+      }
+      
+      // If no app shell is cached, try to serve a minimal offline page that redirects to /offline
+      console.log('Service Worker: No cached app shell, serving minimal offline redirect');
       return new Response(
         `
         <!DOCTYPE html>
@@ -294,6 +315,14 @@ async function networkFirstStrategy(request) {
             <title>Offline - Blockate Audio Browser</title>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <script>
+              // Redirect to offline page when the app loads
+              window.addEventListener('load', () => {
+                if (window.location.pathname !== '/offline') {
+                  window.location.href = '/offline';
+                }
+              });
+            </script>
             <style>
               body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -308,37 +337,15 @@ async function networkFirstStrategy(request) {
                 text-align: center;
                 padding: 20px;
               }
-              .offline-icon {
-                font-size: 4rem;
+              .loading {
+                font-size: 2rem;
                 margin-bottom: 1rem;
-              }
-              h1 {
-                margin-bottom: 0.5rem;
-                color: #df3877;
-              }
-              p {
-                margin-bottom: 2rem;
-                opacity: 0.8;
-              }
-              button {
-                background: #df3877;
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 1rem;
-              }
-              button:hover {
-                background: #c12e68;
               }
             </style>
           </head>
           <body>
-            <div class="offline-icon">📡</div>
-            <h1>You're offline</h1>
-            <p>Please check your internet connection and try again.</p>
-            <button onclick="window.location.reload()">Try Again</button>
+            <div class="loading">📡</div>
+            <p>Loading offline mode...</p>
           </body>
         </html>
         `,
