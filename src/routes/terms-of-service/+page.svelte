@@ -1,5 +1,5 @@
 <script lang="ts">
-  const lastUpdated = "July 13, 2025";
+  const lastUpdated = "July 27, 2025";
 </script>
 
 <svelte:head>
@@ -50,7 +50,7 @@
       <ul class="list-disc pl-6 mb-4">
         <li><strong>openid:</strong> Required for user authentication and to receive your unique user identifier</li>
         <li><strong>profile:</strong> Allows us to access your username, display name, and avatar for personalization and account linking</li>
-        <li><strong>asset:read:</strong> Enables access to your audio assets to assist with audio selection in whitelist request forms</li>
+        <li><strong>user.inventory-item:read:</strong> Enables access to your audio assets to assist with audio selection in whitelist request forms</li>
       </ul>
       <p>
         We follow Roblox's principle of least privilege, requesting only the minimum scopes necessary 

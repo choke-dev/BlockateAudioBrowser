@@ -1,5 +1,5 @@
 <script lang="ts">
-  const lastUpdated = "July 13, 2025";
+  const lastUpdated = "July 27, 2025";
 </script>
 
 <svelte:head>
@@ -43,7 +43,7 @@
         <li><strong>Avatar URL:</strong> Link to your Roblox avatar image for profile display</li>
       </ul>
 
-      <h3 class="text-xl font-semibold mb-3">asset:read Scope:</h3>
+      <h3 class="text-xl font-semibold mb-3">user.inventory-item:read	Scope:</h3>
       <ul class="list-disc pl-6 mb-4">
         <li><strong>Audio Assets:</strong> Access to your audio assets for selection assistance in whitelist requests</li>
         <li><strong>Asset Metadata:</strong> Basic information about your audio assets (titles, IDs, creation dates) to help you identify and select the correct audio for whitelist submissions</li>
