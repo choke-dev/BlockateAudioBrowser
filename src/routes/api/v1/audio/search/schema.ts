@@ -4,7 +4,6 @@ export default z.object({
     filters: z.object({
         filters: z.array(
             z.object({
-                label: z.string(),
                 value: z.string(),
                 inputValue: z.string(),
             })
