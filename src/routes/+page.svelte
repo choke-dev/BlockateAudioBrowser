@@ -152,7 +152,7 @@
       };
 
       // Build URL with query parameters
-      const url = new URL('/api/audio/search', window.location.origin);
+      const url = new URL('/api/v1/audio/search', window.location.origin);
       if (validatedQuery.trim()) {
         url.searchParams.set('keyword', encodeURIComponent(validatedQuery));
       }

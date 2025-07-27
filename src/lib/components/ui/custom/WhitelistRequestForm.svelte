@@ -73,7 +73,7 @@
 
   async function handleReauthorization() {
     try {
-      const response = await ofetch('/api/oauth/roblox/reauthorize', {
+      const response = await ofetch('/api/v1/oauth/roblox/reauthorize', {
         method: 'POST',
         credentials: 'include'
       });
@@ -108,7 +108,7 @@
       };
 
       // Submit the whitelist request with tags included
-      const response = await ofetch.raw('/api/whitelist/request', {
+      const response = await ofetch.raw('/api/v1/whitelist/request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -226,7 +226,7 @@ class WhitelistNotificationService {
         return;
       }
 
-      const url = new URL('/api/whitelist/notifications', window.location.origin);
+      const url = new URL('/api/v1/whitelist/notifications', window.location.origin);
       if (this.lastChecked) {
         url.searchParams.set('since', this.lastChecked);
       }

@@ -89,7 +89,7 @@
     error = '';
     
     try {
-      const response = await ofetch<AudioAsset[] | ErrorResponse>('/api/user/assets', {
+      const response = await ofetch<AudioAsset[] | ErrorResponse>('/api/v1/user/assets', {
         credentials: 'include',
         timeout: 10000, // 10 second timeout
         retry: 1

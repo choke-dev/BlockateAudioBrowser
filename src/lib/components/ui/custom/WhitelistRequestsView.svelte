@@ -38,7 +38,7 @@
 
     isLoading = true;
     try {
-      const url = new URL('/api/whitelist/requests', window.location.origin);
+      const url = new URL('/api/v1/whitelist/requests', window.location.origin);
       url.searchParams.set('page', page.toString());
       url.searchParams.set('limit', pagination.limit.toString());
 

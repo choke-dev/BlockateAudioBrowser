@@ -185,7 +185,7 @@
 
   async function fetchPreviewUrl(trackId: string): Promise<string | null> {
     try {
-      const response = await fetch('/api/audio/preview', {
+      const response = await fetch('/api/v1/audio/preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
