@@ -1,0 +1,1475 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Blockate Audio Browser API",
+    "description": "The API for managing and discovering audio assets in the Roblox game “Blockate\".",
+    "version": "1.0.0",
+    "contact": {
+      "name": "choke-dev",
+      "url": "https://github.com/choke-dev/BlockateAudioBrowser"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "API v1"
+    }
+  ],
+  "paths": {
+    "/audio/info": {
+      "get": {
+        "summary": "Get audio information",
+        "description": "Retrieve basic information about audio assets from the database",
+        "tags": ["Audio"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "Comma-separated list of audio IDs",
+            "schema": {
+              "type": "string",
+              "example": "117501945099366, 136294397616023"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioInfo"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Audio not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audio/preview": {
+      "post": {
+        "summary": "Get audio preview URLs",
+        "description": "Retrieve playable URLs for audio assets, with background processing for JukeHost uploads",
+        "tags": ["Audio"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "int64"
+                },
+                "minItems": 1,
+                "maxItems": 50,
+                "example": ["117501945099366", "136294397616023"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio URLs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "example": {
+                    "123456789": "<URL>",
+                    "987654321": "<URL>"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or missing audio IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audio/search": {
+      "post": {
+        "summary": "Search audio assets",
+        "description": "Search for audio assets with advanced filtering, sorting, and fuzzy search capabilities",
+        "tags": ["Audio"],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid search parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Search service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/logout": {
+      "post": {
+        "summary": "Logout user",
+        "description": "Logout the current user and revoke OAuth tokens",
+        "tags": ["Authentication"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Logout failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Logout user (redirect)",
+        "description": "Logout the current user and redirect to home page",
+        "tags": ["Authentication"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to home page after logout"
+          }
+        }
+      }
+    },
+    "/oauth/refresh": {
+      "post": {
+        "summary": "Refresh OAuth tokens",
+        "description": "Refresh the user's OAuth access token using the refresh token",
+        "tags": ["Authentication"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tokens refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No refresh token available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid session or token refresh failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/user": {
+      "get": {
+        "summary": "Get current user information",
+        "description": "Retrieve information about the currently authenticated user",
+        "tags": ["Authentication"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/roblox/login": {
+      "post": {
+        "summary": "Initiate Roblox OAuth login",
+        "description": "Generate OAuth authorization URL for Roblox login",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": {
+            "description": "Authorization URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUrlResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to initiate OAuth flow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/roblox/callback": {
+      "get": {
+        "summary": "OAuth callback handler",
+        "description": "Handle OAuth callback from Roblox and complete authentication",
+        "tags": ["Authentication"],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "OAuth authorization code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "description": "OAuth state parameter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "description": "OAuth error parameter",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect after successful or failed authentication"
+          }
+        }
+      }
+    },
+    "/oauth/roblox/reauthorize": {
+      "post": {
+        "summary": "Reauthorize with additional scopes",
+        "description": "Generate OAuth authorization URL with additional scopes for inventory access",
+        "tags": ["Authentication"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reauthorization URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUrlResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to initiate OAuth reauthorization flow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/assets": {
+      "get": {
+        "summary": "Get user's audio assets",
+        "description": "Retrieve audio assets owned by the authenticated user from their Roblox inventory",
+        "tags": ["User"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User assets retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserAsset"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or invalid tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing required OAuth scopes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/roblox/erasure": {
+      "post": {
+        "summary": "Handle Roblox erasure webhook",
+        "x-internal": true,
+        "description": "Process right-to-erasure requests from Roblox webhooks",
+        "tags": ["Webhooks"],
+        "security": [
+          {
+            "webhookSignature": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErasureWebhook"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Erasure request processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload structure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/whitelist/notifications": {
+      "get": {
+        "summary": "Get whitelist notifications",
+        "description": "Retrieve notifications about whitelist request status updates",
+        "tags": ["Whitelist"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Only get updates since this timestamp",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of notifications to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Acknowledge notifications",
+        "description": "Mark specific notifications as acknowledged",
+        "tags": ["Whitelist"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notifications acknowledged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcknowledgeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/whitelist/request": {
+      "post": {
+        "summary": "Submit whitelist request",
+        "description": "Submit a new audio whitelist request for approval",
+        "tags": ["Whitelist"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitelistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Whitelist request submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhitelistRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data or audio already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Audio ID does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/whitelist/requests": {
+      "get": {
+        "summary": "Get user's whitelist requests",
+        "description": "Retrieve paginated list of whitelist requests submitted by the user",
+        "tags": ["Whitelist"],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of requests per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whitelist requests retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhitelistRequestsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session-based authentication using HTTP-only cookies"
+      },
+      "webhookSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "roblox-signature",
+        "description": "HMAC SHA256 signature for webhook verification"
+      }
+    },
+    "schemas": {
+      "AudioInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Audio asset ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Audio asset name"
+          },
+          "category": {
+            "type": "string",
+            "description": "Audio category"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        }
+      },
+      "SearchRequest": {
+        "type": "object",
+        "properties": {
+          "filters": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "filters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "enum": ["category"]
+                    },
+                    "inputValue": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["label", "value", "inputValue"]
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": ["and", "or"]
+              }
+            },
+            "required": ["filters", "type"]
+          },
+          "sort": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "field": {
+                "type": "string",
+                "enum": ["id", "name", "category", "created_at"]
+              },
+              "order": {
+                "type": "string",
+                "enum": ["asc", "desc"]
+              }
+            },
+            "required": ["field", "order"]
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioSearchResult"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of results"
+          }
+        }
+      },
+      "AudioSearchResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Audio asset ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Audio asset name"
+          },
+          "category": {
+            "type": "string",
+            "description": "Audio category"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Audio tags"
+          },
+          "is_previewable": {
+            "type": "boolean",
+            "description": "Whether audio can be previewed"
+          },
+          "whitelister": {
+            "type": "string",
+            "nullable": true,
+            "description": "User who whitelisted this audio"
+          },
+          "audio_url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "description": "Direct audio URL if available"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean"
+          },
+          "user": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "robloxId": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "avatar": {
+                "type": "string",
+                "format": "uri"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "OAuth scopes granted"
+          },
+          "requiresReauth": {
+            "type": "boolean",
+            "description": "Whether user needs to re-authenticate"
+          }
+        }
+      },
+      "OAuthUrlResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "string",
+            "format": "uri",
+            "description": "OAuth authorization URL"
+          }
+        }
+      },
+      "UserAsset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Asset ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Asset name"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Asset creation date"
+          }
+        }
+      },
+      "ErasureWebhook": {
+        "x-internal": true,
+        "type": "object",
+        "required": ["NotificationId", "EventType", "EventTime", "EventPayload"],
+        "properties": {
+          "NotificationId": {
+            "type": "string",
+            "description": "Unique notification identifier"
+          },
+          "EventType": {
+            "type": "string",
+            "enum": ["RightToErasureRequest"],
+            "description": "Type of webhook event"
+          },
+          "EventTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the event occurred"
+          },
+          "EventPayload": {
+            "type": "object",
+            "required": ["UserId", "GameIds"],
+            "properties": {
+              "UserId": {
+                "type": "integer",
+                "description": "Roblox user ID to be erased"
+              },
+              "GameIds": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "List of game IDs associated with the request"
+              }
+            }
+          }
+        }
+      },
+      "WebhookResponse": {
+        "x-internal": true,
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "notificationId": {
+            "type": "string"
+          }
+        }
+      },
+      "NotificationsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhitelistNotification"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "since": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "WhitelistNotification": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "audioId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["APPROVED", "REJECTED"]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userNotified": {
+            "type": "boolean"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcknowledgeRequest": {
+        "type": "object",
+        "required": ["requestIds"],
+        "properties": {
+          "requestIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "AcknowledgeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "acknowledgedCount": {
+                "type": "integer"
+              },
+              "acknowledgedIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "WhitelistRequest": {
+        "type": "object",
+        "required": ["audioId", "audioName", "audioCategory"],
+        "properties": {
+          "audioId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Audio ID is required"
+          },
+          "audioName": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Audio name is required"
+          },
+          "audioCategory": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Audio category is required"
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the audio should be private"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Optional tags for the audio"
+          }
+        }
+      },
+      "WhitelistRequestResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "audioId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WhitelistRequestsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhitelistRequestItem"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "totalCount": {
+                "type": "integer"
+              },
+              "totalPages": {
+                "type": "integer"
+              },
+              "hasNextPage": {
+                "type": "boolean"
+              },
+              "hasPreviousPage": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "WhitelistRequestItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "audioId": {
+            "type": "string"
+          },
+          "audioName": {
+            "type": "string"
+          },
+          "audioCategory": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Array of error objects"
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Validation error details"
+          }
+        }
+      },
+      "AuthError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "requiresReauth": {
+            "type": "boolean",
+            "description": "Whether user needs to re-authenticate"
+          }
+        }
+      },
+      "ScopeError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "requiresInventoryReadScope": {
+            "type": "boolean"
+          },
+          "currentScope": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      "RateLimitError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Audio",
+      "description": "Audio asset management and retrieval"
+    },
+    {
+      "name": "Authentication",
+      "description": "User authentication and OAuth operations"
+    },
+    {
+      "name": "User",
+      "description": "User-specific operations"
+    },
+    {
+      "name": "Whitelist",
+      "description": "Audio whitelist request management"
+    }
+  ]
+}
