@@ -146,7 +146,7 @@
     "/audio/search": {
       "post": {
         "summary": "Search audio assets",
-        "description": "Search for audio assets with advanced filtering, sorting, and fuzzy search capabilities",
+        "description": "Search for audio assets based on the keyword, filters, and the sort option provided.",
         "tags": ["Audio"],
         "parameters": [
           {
