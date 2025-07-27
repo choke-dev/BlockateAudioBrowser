@@ -65,6 +65,7 @@
     ]
   },
   "dependencies": {
+    "@scalar/sveltekit": "^0.1.16",
     "@supabase/supabase-js": "^2.50.5",
     "@urbanzoo/remove-accents": "^1.0.2",
     "dotenv": "^17.1.0",
