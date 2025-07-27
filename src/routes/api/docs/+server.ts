@@ -1,7 +1,7 @@
 import { ScalarApiReference } from '@scalar/sveltekit'
 import type { RequestHandler } from './$types'
 const render = ScalarApiReference({
-  url: 'https://cdn.jsdelivr.net/npm/@scalar/galaxy/dist/latest.json',
+  url: '/api/openapi.json',
 })
 
 export const GET: RequestHandler = () => {
