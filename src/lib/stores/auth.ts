@@ -40,7 +40,7 @@ function createAuthStore() {
       update(state => ({ ...state, loading: true }));
       
       try {
-        const response = await fetch('/api/v1/oauth/user', {
+        const response = await fetch('/api/oauth/user', {
           credentials: 'include'
         });
         
@@ -100,7 +100,7 @@ function createAuthStore() {
       if (!browser) return;
       
       try {
-        const response = await fetch('/api/v1/oauth/roblox/login', {
+        const response = await fetch('/api/oauth/roblox/login', {
           method: 'POST',
           credentials: 'include'
         });
@@ -129,7 +129,7 @@ function createAuthStore() {
       if (!browser) return;
       
       try {
-        const response = await fetch('/api/v1/oauth/logout', {
+        const response = await fetch('/api/oauth/logout', {
           method: 'POST',
           credentials: 'include'
         });
@@ -166,7 +166,7 @@ function createAuthStore() {
       if (!browser) return false;
       
       try {
-        const response = await fetch('/api/v1/oauth/refresh', {
+        const response = await fetch('/api/oauth/refresh', {
           method: 'POST',
           credentials: 'include'
         });

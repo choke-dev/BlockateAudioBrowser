@@ -73,7 +73,7 @@
 
   async function handleReauthorization() {
     try {
-      const response = await ofetch('/api/v1/oauth/roblox/reauthorize', {
+      const response = await ofetch('/api/oauth/roblox/reauthorize', {
         method: 'POST',
         credentials: 'include'
       });

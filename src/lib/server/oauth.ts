@@ -70,7 +70,7 @@ class RobloxOAuthService {
    * Generate authorization URL for OAuth flow
    */
   getAuthorizationUrl(state: string, codeChallenge: string, hostname: string, protocol: string = 'https', additionalScopes?: string[]): string {
-    const redirectUri = `${protocol}://${hostname}/api/v1/oauth/roblox/callback`;
+    const redirectUri = `${protocol}://${hostname}/api/oauth/roblox/callback`;
     
     // Base scopes
     let scope = 'openid profile';
@@ -110,7 +110,7 @@ class RobloxOAuthService {
     hostname: string,
     protocol: string = 'https'
   ): Promise<TokenResponse> {
-    const redirectUri = `${protocol}://${hostname}/api/v1/oauth/roblox/callback`;
+    const redirectUri = `${protocol}://${hostname}/api/oauth/roblox/callback`;
     
     const response = await fetch(`${this.baseUrl}/v1/token`, {
       method: 'POST',
