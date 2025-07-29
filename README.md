@@ -1,38 +1,17 @@
-# sv
+<h1 align="center">
+    <sub>
+        <img src="static/images/audiodb/72x72.png" height="38" width="38">
+    </sub>
+    Blockate Audio Browser
+</h1>
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+<p align="center">
+    A SvelteKit webapp to search through and manage whitelisted audio IDs on <a href="https://blockate.com">Blockate</a>
+</p>
 
-## Creating a project
+<h2>Features</h2>
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+<ul>
+    <li>Search through audio IDs by audio name, category, or tags</li>
+    <li>Request whitelisting for an audio</li>
+</ul>
