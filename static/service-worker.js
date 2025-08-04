@@ -256,6 +256,95 @@ async function cleanupExpiredCacheEntries() {
 }
 
 /**
+ * Broadcast download progress to all clients
+ */
+function broadcastProgress(url, loadedBytes, totalBytes) {
+  const progress = totalBytes > 0 ? (loadedBytes / totalBytes) * 100 : 0;
+  
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'download-progress',
+        url: url,
+        loadedBytes: loadedBytes,
+        totalBytes: totalBytes,
+        progress: progress
+      });
+    });
+  });
+}
+
+/**
+ * Fetch with progress tracking for audio files
+ */
+async function fetchWithProgress(request, cache) {
+  try {
+    console.log('Service Worker: Fetching with progress tracking:', request.url);
+    
+    const response = await fetch(request);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const contentLength = parseInt(response.headers.get('Content-Length') || '0');
+    let loadedBytes = 0;
+
+    // Send initial progress
+    broadcastProgress(request.url, 0, contentLength);
+
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+
+    // Use ReadableStream with progress tracking
+    const reader = response.body.getReader();
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      chunks.push(value);
+      loadedBytes += value.length;
+
+      // Send progress update
+      broadcastProgress(request.url, loadedBytes, contentLength);
+    }
+
+    // Send completion
+    broadcastProgress(request.url, loadedBytes, contentLength);
+
+    // Create response from chunks
+    const responseBody = new Uint8Array(loadedBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      responseBody.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    const finalResponse = new Response(responseBody, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
+
+    // Cache the response if successful
+    if (finalResponse.ok) {
+      await cacheResponseWithExpiration(cache, request, finalResponse);
+    }
+
+    return finalResponse;
+  } catch (error) {
+    console.error('Service Worker: Fetch failed:', request.url, error);
+    throw error;
+  }
+}
+
+/**
  * Network-first strategy: Try network first, fallback to cache
  */
 async function networkFirstStrategy(request) {
@@ -380,16 +469,24 @@ async function cacheFirstStrategy(request) {
   console.log('Service Worker: Cache miss or expired, fetching from network (cache-first):', request.url);
   
   try {
-    // Not in cache or expired, fetch from network
-    const networkResponse = await fetch(request);
+    // Check if this is an audio file that needs progress tracking
+    const isAudioFile = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(new URL(request.url).pathname) ||
+                       request.url.includes('audio.jukehost.co.uk');
     
-    // Cache the response if successful
-    if (networkResponse.ok) {
-      await cacheResponseWithExpiration(cache, request, networkResponse);
-      console.log('Service Worker: Cached response (cache-first):', request.url);
+    if (isAudioFile) {
+      return await fetchWithProgress(request, cache);
+    } else {
+      // Not in cache or expired, fetch from network normally
+      const networkResponse = await fetch(request);
+      
+      // Cache the response if successful
+      if (networkResponse.ok) {
+        await cacheResponseWithExpiration(cache, request, networkResponse);
+        console.log('Service Worker: Cached response (cache-first):', request.url);
+      }
+      
+      return networkResponse;
     }
-    
-    return networkResponse;
   } catch (error) {
     console.error('Service Worker: Network and cache failed for:', request.url);
     throw error;

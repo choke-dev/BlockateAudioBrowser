@@ -7,11 +7,11 @@
   import IcRoundContentCopy from '~icons/ic/round-content-copy';
   import IconTablerChevronDown from '~icons/tabler/chevron-down';
   import IconTablerMusic from '~icons/tabler/music';
-  import { toast } from "svelte-sonner";
+  import { toast } from 'svelte-sonner';
   import { slide } from 'svelte/transition';
-import { playingTrackId } from '$lib/stores/playingTrackStore';
-import { audioCache } from '$lib/stores/audioCacheStore';
-    import { FetchError } from 'ofetch';
+  import { playingTrackId } from '$lib/stores/playingTrackStore';
+  import { audioCache } from '$lib/stores/audioCacheStore';
+  import { FetchError } from 'ofetch';
 
   interface MusicTrack {
     id: string;
@@ -49,9 +49,13 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   let audioElement: HTMLAudioElement | null = null;
   let audioError = $state<string | null>(null);
   let isLoadingPreview = $state(false);
+  let isDownloading = $state(false);
   let localCurrentTime = $state(0);
   let audioDuration = $state<number | null>(null);
   let downloadProgress = $state(0);
+
+  // Service worker progress tracking
+  let currentDownloadUrl = $state<string | null>(null);
 
   // Effect to ensure isExpanded is false if not playing
   $effect(() => {
@@ -60,56 +64,84 @@ import { audioCache } from '$lib/stores/audioCacheStore';
     }
   });
 
-  // Audio preview functionality
-  async function tryPlayAudio(audioUrl: string, trackId?: string): Promise<boolean> {
-    return new Promise(async (resolve) => {
+  // Listen for service worker progress messages
+  function handleServiceWorkerMessage(event: MessageEvent) {
+    if (event.data?.type === 'download-progress' && event.data.url === currentDownloadUrl) {
+      downloadProgress = event.data.progress;
+    }
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+  }
+
+  // Download audio with progress tracking via service worker
+  async function downloadAudio(audioUrl: string, trackId?: string): Promise<string | null> {
+    // Check if already cached
+    if (trackId) {
+      const cachedUrl = audioCache.getCachedAudio(trackId);
+      if (cachedUrl) {
+        console.log(`Using cached audio for track ${trackId}`);
+        return cachedUrl;
+      }
+    }
+
+    try {
+      // Reset and start download
+      isDownloading = true;
+      downloadProgress = 0;
+      currentDownloadUrl = audioUrl;
+
+      // Let the service worker handle the download and progress tracking
+      const response = await fetch(audioUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Convert response to blob
+      const audioBlob = await response.blob();
+      const blobUrl = URL.createObjectURL(audioBlob);
+
+      // Cache if needed
+      if (trackId) {
+        try {
+          await audioCache.cacheAudio(trackId, blobUrl);
+        } catch (cacheError) {
+          console.warn('Cache failed:', cacheError);
+        }
+      }
+
+      downloadProgress = 100;
+      return blobUrl;
+    } catch (error) {
+      console.error('Download failed:', error);
+      return null;
+    } finally {
+      isDownloading = false;
+      currentDownloadUrl = null;
+    }
+  }
+
+  // Play audio from blob URL
+  async function playAudioFromBlob(blobUrl: string): Promise<boolean> {
+    return new Promise((resolve) => {
       if (audioElement) {
         audioElement.pause();
         audioElement = null;
       }
 
-      // Check if we have a cached blob for this track
-      let finalAudioUrl = audioUrl;
-      let cachePromise: Promise<string> | null = null;
-      
-      if (trackId) {
-        const cachedUrl = audioCache.getCachedAudio(trackId);
-        if (cachedUrl) {
-          console.log(`Using cached audio for track ${trackId}`);
-          finalAudioUrl = cachedUrl;
-        } else {
-          // Start caching in the background and keep the promise for fallback
-          console.log(`Starting background cache for track ${trackId}`);
-          cachePromise = audioCache.cacheAudio(trackId, audioUrl);
-          // Use original URL for immediate streaming
-          finalAudioUrl = audioUrl;
-        }
-      }
+      audioElement = new Audio(blobUrl);
+      audioElement.preload = 'metadata';
 
-      audioElement = new Audio(finalAudioUrl);
-      audioElement.preload = 'auto'; // Changed from 'metadata' to 'auto' to enable progress tracking
-      
       const setupCleanup = () => {
         audioElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
         audioElement?.removeEventListener('canplay', onCanPlay);
         audioElement?.removeEventListener('error', onError);
-        audioElement?.removeEventListener('progress', onProgress);
       };
 
       const onLoadedMetadata = () => {
-        // Get duration as soon as metadata is loaded
         if (audioElement && audioElement.duration && !isNaN(audioElement.duration)) {
           audioDuration = audioElement.duration;
-        }
-      };
-
-      const onProgress = () => {
-        if (audioElement && audioElement.buffered.length > 0) {
-          const bufferedEnd = audioElement.buffered.end(audioElement.buffered.length - 1);
-          const duration = audioElement.duration;
-          if (duration > 0) {
-            downloadProgress = (bufferedEnd / duration) * 100;
-          }
         }
       };
 
@@ -117,15 +149,10 @@ import { audioCache } from '$lib/stores/audioCacheStore';
         // Set up persistent time tracking and ended event listeners
         audioElement?.addEventListener('timeupdate', onTimeUpdate);
         audioElement?.addEventListener('ended', onEnded);
-        // Keep progress listener active during playback
-        audioElement?.addEventListener('progress', onProgress);
-        
+
         try {
           await audioElement?.play();
-          // Don't clean up progress listener immediately
-          audioElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
-          audioElement?.removeEventListener('canplay', onCanPlay);
-          audioElement?.removeEventListener('error', onError);
+          setupCleanup();
           resolve(true);
         } catch (error) {
           console.warn('Audio play failed:', error);
@@ -134,38 +161,8 @@ import { audioCache } from '$lib/stores/audioCacheStore';
         }
       };
 
-      const onError = async () => {
-        console.warn('Audio load failed for URL:', finalAudioUrl);
-        
-        // If we have a cache promise and this was a streaming failure, wait for cache
-        if (cachePromise && trackId && finalAudioUrl === audioUrl) {
-          console.log(`Streaming failed for track ${trackId}, waiting for background cache...`);
-          try {
-            const cachedUrl = await cachePromise;
-            if (cachedUrl !== audioUrl) { // Only retry if we got a different (blob) URL
-              console.log(`Retrying with cached blob for track ${trackId}`);
-              setupCleanup();
-              
-              // Retry with the cached blob URL
-              audioElement = new Audio(cachedUrl);
-              audioElement.preload = 'auto';
-              
-              // Set up the same event listeners but without the fallback logic
-              audioElement.addEventListener('loadedmetadata', onLoadedMetadata);
-              audioElement.addEventListener('canplay', onCanPlay);
-              audioElement.addEventListener('error', () => {
-                setupCleanup();
-                console.error('Cached audio also failed to load');
-                resolve(false);
-              });
-              audioElement.addEventListener('progress', onProgress);
-              return; // Don't resolve false yet, let the retry attempt complete
-            }
-          } catch (error) {
-            console.warn('Background cache also failed:', error);
-          }
-        }
-        
+      const onError = () => {
+        console.error('Audio load failed for blob URL');
         setupCleanup();
         resolve(false);
       };
@@ -184,17 +181,15 @@ import { audioCache } from '$lib/stores/audioCacheStore';
         localCurrentTime = 0;
       };
 
-      // Load metadata first to get duration and track progress
       audioElement.addEventListener('loadedmetadata', onLoadedMetadata);
       audioElement.addEventListener('canplay', onCanPlay);
       audioElement.addEventListener('error', onError);
-      audioElement.addEventListener('progress', onProgress);
-      
+
       // Set a timeout to avoid hanging
       setTimeout(() => {
         setupCleanup();
         resolve(false);
-      }, 10000); // 10 second timeout
+      }, 5000); // 5 second timeout for blob playback
     });
   }
 
@@ -203,7 +198,7 @@ import { audioCache } from '$lib/stores/audioCacheStore';
       const response = await fetch('/api/v1/audio/preview', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify([trackId])
       });
@@ -222,94 +217,98 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   }
 
   async function handlePlayPause(event: Event) {
-  event.stopPropagation();
+    event.stopPropagation();
 
-  if (isPlaying) {
-    // Pause current audio
-    if (audioElement) {
-      audioElement.pause();
-      audioElement = null;
+    if (isPlaying) {
+      // Pause current audio
+      if (audioElement) {
+        audioElement.pause();
+        audioElement = null;
+      }
+      isExpanded = false;
+      onPause?.();
+      playingTrackId.set(null);
+      audioDuration = null;
+      downloadProgress = 0;
+      return;
     }
-    isExpanded = false;
-    onPause?.();
-    playingTrackId.set(null);
-    audioDuration = null;
+
+    // Only proceed if track is previewable
+    if (!track.isPreviewable) {
+      audioError = 'Preview is not available for this track.';
+      toast.error(audioError);
+      return;
+    }
+
+    isLoadingPreview = true;
+    audioError = null;
     downloadProgress = 0;
-    return;
-  }
 
-  // Only proceed if track is previewable
-  if (!track.isPreviewable) {
-    audioError = 'Preview is not available for this track.';
-    toast.error(audioError);
-    return;
-  }
+    try {
+      let audioUrl = track.audioUrl;
+      let blobUrl: string | null = null;
 
-  isLoadingPreview = true;
-  audioError = null;
-  downloadProgress = 0;
-
-  try {
-    let audioUrl = track.audioUrl;
-    let playSuccess = false;
-
-    // Try to play existing audio URL first
-    if (audioUrl) {
-      playSuccess = await tryPlayAudio(audioUrl, track.id);
-      if (!playSuccess) {
-        console.warn(`Playback failed for cached URL: ${audioUrl}`);
-      }
-    }
-
-    // If that failed or no URL exists, try to get one from the API
-    if (!playSuccess) {
-      console.log('Fetching new preview URL from API...');
-      let newAudioUrl;
-      try {
-        newAudioUrl = await fetchPreviewUrl(track.id);
-      } catch (fetchErr) {
-        if (!(fetchErr instanceof FetchError)) return;
-        audioError = `Could not fetch preview URL: ${fetchErr.message || fetchErr}`;
-        console.error('Error fetching preview URL:', fetchErr);
-        throw fetchErr; // jump to outer catch
+      // First, try to get audio URL if we don't have one
+      if (!audioUrl) {
+        console.log('Fetching preview URL from API...');
+        try {
+          const fetchedUrl = await fetchPreviewUrl(track.id);
+          if (!fetchedUrl) {
+            audioError = 'No preview URL received, this audio may be moderated.';
+            console.error('fetchPreviewUrl returned empty for track:', track.id);
+            throw new Error(audioError);
+          }
+          audioUrl = fetchedUrl;
+        } catch (fetchErr) {
+          if (!(fetchErr instanceof FetchError)) return;
+          audioError = `Could not fetch preview URL: ${fetchErr.message || fetchErr}`;
+          console.error('Error fetching preview URL:', fetchErr);
+          throw fetchErr;
+        }
       }
 
-      if (!newAudioUrl) {
-        audioError = 'No preview URL received, this audio may be moderated.';
-        console.error('fetchPreviewUrl returned empty for track:', track.id);
+      // Set downloading state and initial progress before starting download
+      isDownloading = true;
+
+      // Download the audio first
+      console.log('Downloading audio before playback...');
+      blobUrl = await downloadAudio(audioUrl, track.id);
+
+      if (!blobUrl) {
+        audioError = 'Failed to download audio file.';
+        console.error('Download failed for track:', track.id);
         throw new Error(audioError);
       }
 
-      audioUrl = newAudioUrl;
-      playSuccess = await tryPlayAudio(audioUrl, track.id);
-      if (!playSuccess) {
-        console.error(`Playback failed for fetched URL: ${audioUrl}`);
+      // Now play the downloaded audio
+      console.log('Playing downloaded audio...');
+      const playSuccess = await playAudioFromBlob(blobUrl);
+
+      if (playSuccess) {
+        isExpanded = true;
+        onPlay?.(track);
+        playingTrackId.set(track.id);
+      } else {
+        audioError = 'Audio format not supported or playback failed.';
+        console.error('Playback failed for track:', track.id);
+      }
+    } catch (error) {
+      if (!(error instanceof Error)) return;
+      // If we already have a specific message, keep it; otherwise generic fallback
+      if (!audioError) {
+        audioError = `Unexpected error: ${error.message || error}`;
+        console.error('Unexpected error in handlePlayPause:', error);
+      }
+    } finally {
+      isLoadingPreview = false;
+      isDownloading = false;
+      if (audioError) {
+        toast.error(audioError, {
+          duration: 5000
+        });
       }
     }
-
-    if (playSuccess) {
-      isExpanded = true;
-      onPlay?.(track);
-      playingTrackId.set(track.id);
-    } else {
-      audioError = 'Audio format not supported or playback failed.';
-      console.error('Final play attempt failed for track:', track.id);
-    }
-  } catch (error) {
-    if (!(error instanceof Error)) return;
-    // If we already have a specific message, keep it; otherwise generic fallback
-    if (!audioError) {
-      audioError = `Unexpected error: ${error.message || error}`;
-      console.error('Unexpected error in handlePlayPause:', error);
-    }
-  } finally {
-    isLoadingPreview = false;
-    if (audioError) toast.error(audioError, {
-      duration: 5000
-    });
   }
-}
-
 
   function handleRowClick() {
     onRowClick?.(track);
@@ -336,7 +335,10 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   }
 
   function stopPropagation<T extends Event>(handler: (event: T) => void) {
-    return (e: T) => { e.stopPropagation(); handler(e); };
+    return (e: T) => {
+      e.stopPropagation();
+      handler(e);
+    };
   }
 
   async function copyToClipboard(text: string) {
@@ -351,12 +353,10 @@ import { audioCache } from '$lib/stores/audioCacheStore';
 
   // Cleanup audio element when component is destroyed
   $effect(() => {
-    return () => {
-      if (audioElement) {
-        audioElement.pause();
-        audioElement = null;
-      }
-    };
+    if (audioElement) {
+      audioElement.pause();
+      audioElement = null;
+    }
   });
 
   // Stop audio when not playing
@@ -366,9 +366,6 @@ import { audioCache } from '$lib/stores/audioCacheStore';
       audioElement = null;
     }
   });
-
-  // Add cache status indicator
-  const isCached = $derived(audioCache.isCached(track.id));
 </script>
 
 <div
@@ -379,29 +376,31 @@ import { audioCache } from '$lib/stores/audioCacheStore';
   aria-label="Expand track details for {track.name} by {track.creator}"
 >
   <!-- Regular track row -->
-  <div class="grid grid-cols-[48px_132px_1fr_1fr_200px] gap-4 items-center px-4 py-1">
+  <div class="grid grid-cols-[48px_132px_1fr_1fr_200px] items-center gap-4 px-4 py-1">
     {#if track.isPreviewable}
       <div class="relative ml-2">
         <Button
           variant={isPlaying ? 'default' : 'outline'}
           size="icon"
-          class="size-8 transition-colors rounded-full"
+          class="size-8 rounded-full transition-colors"
           onclick={handlePlayPause}
           disabled={isLoadingPreview}
         >
-          {#if isLoadingPreview}
-            <div class="size-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+          {#if isLoadingPreview || isDownloading}
+            <div
+              class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+            ></div>
           {:else if isPlaying}
             <IcRoundPause class="size-6" />
           {:else}
             <IcRoundPlayArrow class="size-6" />
           {/if}
         </Button>
-        
+
         <!-- Download progress ring -->
-        {#if downloadProgress > 0 && downloadProgress < 100}
+        {#if isDownloading}
           <svg
-            class="absolute inset-0 size-8 -rotate-90 pointer-events-none z-99"
+            class="pointer-events-none absolute inset-0 z-99 size-8 -rotate-90"
             viewBox="0 0 32 32"
           >
             <circle
@@ -410,8 +409,8 @@ import { audioCache } from '$lib/stores/audioCacheStore';
               r="14"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
-              stroke-dasharray="{(downloadProgress / 100) * 87.96} 87.96"
+              stroke-width="3"
+              stroke-dasharray="{Math.max(0, (downloadProgress / 100) * 87.96)} 87.96"
               class="text-primary z-99"
             />
           </svg>
@@ -420,33 +419,39 @@ import { audioCache } from '$lib/stores/audioCacheStore';
     {:else}
       <div class="ml-2 size-8"></div>
     {/if}
-    
-    <div class="text-sm text-muted-foreground font-mono truncate">
+
+    <div class="text-muted-foreground truncate font-mono text-sm">
       {track.id}
     </div>
-    
-    <div class="flex items-center gap-3 min-w-0">
-      <span class="font-medium text-foreground truncate">{track.name}</span>
+
+    <div class="flex min-w-0 items-center gap-3">
+      <span class="text-foreground truncate font-medium">{track.name}</span>
     </div>
-    
-    <div class="text-sm text-muted-foreground truncate">
+
+    <div class="text-muted-foreground truncate text-sm">
       {track.category}
     </div>
-    
+
     <!-- Tags Column -->
-    <div class="flex items-center gap-1 min-w-0 overflow-hidden">
+    <div class="flex min-w-0 items-center gap-1 overflow-hidden">
       {#if track.tags && track.tags.length > 0}
         {@const maxTagLength = 12}
-        {@const visibleTags = track.tags.filter((tag, index) => tag.length <= maxTagLength && index < 3)}
-        {@const hiddenTags = track.tags.filter((tag, index) => tag.length > maxTagLength || index >= 3)}
-        
+        {@const visibleTags = track.tags.filter(
+          (tag, index) => tag.length <= maxTagLength && index < 3
+        )}
+        {@const hiddenTags = track.tags.filter(
+          (tag, index) => tag.length > maxTagLength || index >= 3
+        )}
+
         <!-- Show visible tags -->
         {#each visibleTags as tag}
-          <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded text-xs whitespace-nowrap">
+          <span
+            class="bg-primary/10 text-primary inline-flex items-center rounded px-2 py-1 text-xs whitespace-nowrap"
+          >
             {tag}
           </span>
         {/each}
-        
+
         <!-- Show more button if there are hidden tags -->
         {#if hiddenTags.length > 0}
           <Popover.Root>
@@ -454,17 +459,19 @@ import { audioCache } from '$lib/stores/audioCacheStore';
               <Button
                 variant="ghost"
                 size="sm"
-                class="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                class="text-muted-foreground hover:text-foreground h-6 px-2 text-xs"
               >
                 +{hiddenTags.length} more
               </Button>
             </Popover.Trigger>
             <Popover.Content class="w-80 p-3">
               <div class="space-y-2">
-                <h4 class="font-medium text-sm">All Tags</h4>
+                <h4 class="text-sm font-medium">All Tags</h4>
                 <div class="flex flex-wrap gap-1">
                   {#each track.tags as tag}
-                    <span class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary rounded text-xs">
+                    <span
+                      class="bg-primary/10 text-primary inline-flex items-center rounded px-2 py-1 text-xs"
+                    >
                       {tag}
                     </span>
                   {/each}
@@ -479,21 +486,14 @@ import { audioCache } from '$lib/stores/audioCacheStore';
 
   <!-- Expanded progress bar section -->
   {#if isExpanded}
-    <div
-      class="mt-2 px-4 pb-4"
-      transition:slide={{ duration: 300 }}
-    >
+    <div class="mt-2 px-4 pb-4" transition:slide={{ duration: 300 }}>
       <div class="flex items-center gap-4">
         {#if audioError}
-          <div class="text-sm text-red-500 py-2">
+          <div class="py-2 text-sm text-red-500">
             {audioError}
           </div>
         {:else}
-          <ProgressBar
-            currentTime={localCurrentTime}
-            {duration}
-            onSeek={handleSeek}
-          />
+          <ProgressBar currentTime={localCurrentTime} {duration} onSeek={handleSeek} />
         {/if}
       </div>
     </div>
