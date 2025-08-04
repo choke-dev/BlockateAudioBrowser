@@ -113,45 +113,45 @@ export const POST: RequestHandler = async (event) => {
         const now = new Date().toISOString();
         
         // Create new whitelist request
-        // const whitelistRequest = await db.insert(whitelistRequests).values({
-        //     requestId,
-        //     audioId: audioId.toString(),
-        //     name: audioName,
-        //     category: audioCategory,
-        //     tags: tags || [],
-        //     userId: user.id,
-        //     audioVisibility: isPrivate ? 'PRIVATE' : 'PUBLIC',
-        //     status: 'PENDING',
-        //     createdAt: now,
-        //     updatedAt: now,
-        //     requester: {
-        //         discord: { id: null, username: null },
-        //         roblox: { id: user.robloxId, username: user.username }
-        //     },
-        //     audioUrl: audioUrlsResponse._data[0] || '',
-        //     acknowledged: false
-        // }).returning();
+        const whitelistRequest = await db.insert(whitelistRequests).values({
+            requestId,
+            audioId: audioId.toString(),
+            name: audioName,
+            category: audioCategory,
+            tags: tags || [],
+            userId: user.id,
+            audioVisibility: isPrivate ? 'PRIVATE' : 'PUBLIC',
+            status: 'PENDING',
+            createdAt: now,
+            updatedAt: now,
+            requester: {
+                discord: { id: null, username: null },
+                roblox: { id: user.robloxId, username: user.username }
+            },
+            audioUrl: audioUrlsResponse._data[0] || '',
+            acknowledged: false
+        }).returning();
 
-        const whitelistRequest = [
-            {
-                requestId,
-                audioId: audioId.toString(),
-                name: audioName,
-                category: audioCategory,
-                tags: tags || [],
-                userId: user.id,
-                audioVisibility: isPrivate ? 'PRIVATE' : 'PUBLIC',
-                status: 'PENDING',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                requester: {
-                    discord: { id: null, username: null },
-                    roblox: { id: user.robloxId, username: user.username }
-                },
-                audioUrl: '',
-                acknowledged: false
-            }
-        ];
+        // const whitelistRequest = [
+        //     {
+        //         requestId,
+        //         audioId: audioId.toString(),
+        //         name: audioName,
+        //         category: audioCategory,
+        //         tags: tags || [],
+        //         userId: user.id,
+        //         audioVisibility: isPrivate ? 'PRIVATE' : 'PUBLIC',
+        //         status: 'PENDING',
+        //         createdAt: new Date().toISOString(),
+        //         updatedAt: new Date().toISOString(),
+        //         requester: {
+        //             discord: { id: null, username: null },
+        //             roblox: { id: user.robloxId, username: user.username }
+        //         },
+        //         audioUrl: '',
+        //         acknowledged: false
+        //     }
+        // ];
 
         // Send real-time notification via Redis pub/sub
         publishToChannel('audioRequests', {
