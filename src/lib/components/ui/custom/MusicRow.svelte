@@ -11,6 +11,7 @@
   import { slide } from 'svelte/transition';
   import { playingTrackId } from '$lib/stores/playingTrackStore';
   import { audioCache } from '$lib/stores/audioCacheStore';
+  import { audioManager } from '$lib/stores/audioManager';
   import { FetchError } from 'ofetch';
 
   interface MusicTrack {
@@ -127,11 +128,15 @@
     return new Promise((resolve) => {
       if (audioElement) {
         audioElement.pause();
+        audioManager.unregister(`musicrow-${track.id}`);
         audioElement = null;
       }
 
       audioElement = new Audio(blobUrl);
       audioElement.preload = 'metadata';
+      
+      // Register the audio element with the manager
+      audioManager.register(`musicrow-${track.id}`, audioElement, track.id);
 
       const setupCleanup = () => {
         audioElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
@@ -152,6 +157,17 @@
 
         try {
           await audioElement?.play();
+          
+          // Set Media Session metadata when audio starts playing
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: track.name,
+              artist: track.category,
+              album: "Blockate Audio Browser"
+            });
+            navigator.mediaSession.playbackState = 'playing';
+          }
+          
           setupCleanup();
           resolve(true);
         } catch (error) {
@@ -179,6 +195,11 @@
         onPause?.();
         playingTrackId.set(null);
         localCurrentTime = 0;
+        
+        // Clear Media Session metadata when audio ends
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = null;
+        }
       };
 
       audioElement.addEventListener('loadedmetadata', onLoadedMetadata);
@@ -223,6 +244,7 @@
       // Pause current audio
       if (audioElement) {
         audioElement.pause();
+        audioManager.unregister(`musicrow-${track.id}`);
         audioElement = null;
       }
       isExpanded = false;
@@ -230,6 +252,11 @@
       playingTrackId.set(null);
       audioDuration = null;
       downloadProgress = 0;
+      
+      // Clear Media Session metadata when pausing
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = null;
+      }
       return;
     }
 
@@ -353,17 +380,26 @@
 
   // Cleanup audio element when component is destroyed
   $effect(() => {
-    if (audioElement) {
-      audioElement.pause();
-      audioElement = null;
-    }
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioManager.unregister(`musicrow-${track.id}`);
+        audioElement = null;
+      }
+    };
   });
 
   // Stop audio when not playing
   $effect(() => {
     if (!isPlaying && audioElement) {
       audioElement.pause();
+      audioManager.unregister(`musicrow-${track.id}`);
       audioElement = null;
+      
+      // Clear Media Session metadata when stopping
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = null;
+      }
     }
   });
 </script>

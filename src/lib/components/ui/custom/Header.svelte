@@ -1,6 +1,7 @@
 <script lang="ts">
   import SimpleIconsRoblox from '~icons/simple-icons/roblox';
   import LucideDatabase from '~icons/lucide/database';
+  import LucideInfo from '~icons/lucide/info';
   import AuthButton from './AuthButton.svelte';
   import WhitelistRequestForm from './WhitelistRequestForm.svelte';
   import WhitelistRequestsView from './WhitelistRequestsView.svelte';

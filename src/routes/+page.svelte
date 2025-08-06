@@ -5,6 +5,7 @@
   import { browser } from '$app/environment';
 
   import { playingTrackId } from '$lib/stores/playingTrackStore';
+  import { audioManager } from '$lib/stores/audioManager';
   import { readSearchParams, updateSearchParams, type FilterData, type SortData } from '$lib/utils/urlParams';
   import { offlineStore } from '$lib/stores/offlineStore';
   
@@ -103,6 +104,9 @@
       // Validate inputs
       const validatedQuery = SearchQuerySchema.parse(searchQuery);
       const validatedPage = PageSchema.parse(currentPage);
+      
+      // Pause all audio elements before starting search
+      audioManager.pauseAll();
       
       isPlaying = false;
       isLoading = true;

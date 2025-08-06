@@ -7,6 +7,7 @@
   import { slide } from 'svelte/transition';
   import { playingTrackId } from '$lib/stores/playingTrackStore';
   import { audioCache } from '$lib/stores/audioCacheStore';
+  import { audioManager } from '$lib/stores/audioManager';
 
   interface MusicTrack {
     id: string;
@@ -60,6 +61,7 @@
     return new Promise(async (resolve) => {
       if (audioElement) {
         audioElement.pause();
+        audioManager.unregister(`musiccard-${track.id}`);
         audioElement = null;
       }
 
@@ -83,6 +85,9 @@
 
       audioElement = new Audio(finalAudioUrl);
       audioElement.preload = 'auto';
+      
+      // Register the audio element with the manager
+      audioManager.register(`musiccard-${track.id}`, audioElement, track.id);
       
       const setupCleanup = () => {
         audioElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
@@ -212,6 +217,7 @@
     if (isPlaying) {
       if (audioElement) {
         audioElement.pause();
+        audioManager.unregister(`musiccard-${track.id}`);
         audioElement = null;
       }
       isExpanded = false;
@@ -296,6 +302,7 @@
     return () => {
       if (audioElement) {
         audioElement.pause();
+        audioManager.unregister(`musiccard-${track.id}`);
         audioElement = null;
       }
     };
@@ -305,6 +312,7 @@
   $effect(() => {
     if (!isPlaying && audioElement) {
       audioElement.pause();
+      audioManager.unregister(`musiccard-${track.id}`);
       audioElement = null;
     }
   });
