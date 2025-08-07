@@ -8,6 +8,7 @@
   import { playingTrackId } from '$lib/stores/playingTrackStore';
   import { audioCache } from '$lib/stores/audioCacheStore';
   import { audioManager } from '$lib/stores/audioManager';
+  import { FetchError } from 'ofetch';
 
   interface MusicTrack {
     id: string;
@@ -45,9 +46,13 @@
   let audioElement: HTMLAudioElement | null = null;
   let audioError = $state<string | null>(null);
   let isLoadingPreview = $state(false);
+  let isDownloading = $state(false);
   let localCurrentTime = $state(0);
   let audioDuration = $state<number | null>(null);
   let downloadProgress = $state(0);
+
+  // Service worker progress tracking
+  let currentDownloadUrl = $state<string | null>(null);
 
   // Effect to ensure isExpanded is false if not playing
   $effect(() => {
@@ -55,6 +60,155 @@
       isExpanded = false;
     }
   });
+
+  // Listen for service worker progress messages
+  function handleServiceWorkerMessage(event: MessageEvent) {
+    if (event.data?.type === 'download-progress' && event.data.url === currentDownloadUrl) {
+      downloadProgress = event.data.progress;
+    }
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+  }
+
+  // Download audio with progress tracking via service worker
+  async function downloadAudio(audioUrl: string, trackId?: string): Promise<string | null> {
+    // Check if already cached
+    if (trackId) {
+      const cachedUrl = audioCache.getCachedAudio(trackId);
+      if (cachedUrl) {
+        console.log(`Using cached audio for track ${trackId}`);
+        return cachedUrl;
+      }
+    }
+
+    try {
+      // Reset and start download
+      isDownloading = true;
+      downloadProgress = 0;
+      currentDownloadUrl = audioUrl;
+
+      // Let the service worker handle the download and progress tracking
+      const response = await fetch(audioUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Convert response to blob
+      const audioBlob = await response.blob();
+      const blobUrl = URL.createObjectURL(audioBlob);
+
+      // Cache if needed
+      if (trackId) {
+        try {
+          await audioCache.cacheAudio(trackId, blobUrl);
+        } catch (cacheError) {
+          console.warn('Cache failed:', cacheError);
+        }
+      }
+
+      downloadProgress = 100;
+      return blobUrl;
+    } catch (error) {
+      console.error('Download failed:', error);
+      return null;
+    } finally {
+      isDownloading = false;
+      currentDownloadUrl = null;
+    }
+  }
+
+  // Play audio from blob URL
+  async function playAudioFromBlob(blobUrl: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (audioElement) {
+        audioElement.pause();
+        audioManager.unregister(`musiccard-${track.id}`);
+        audioElement = null;
+      }
+
+      audioElement = new Audio(blobUrl);
+      audioElement.preload = 'metadata';
+      
+      // Register the audio element with the manager
+      audioManager.register(`musiccard-${track.id}`, audioElement, track.id);
+
+      const setupCleanup = () => {
+        audioElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
+        audioElement?.removeEventListener('canplay', onCanPlay);
+        audioElement?.removeEventListener('error', onError);
+      };
+
+      const onLoadedMetadata = () => {
+        if (audioElement && audioElement.duration && !isNaN(audioElement.duration)) {
+          audioDuration = audioElement.duration;
+        }
+      };
+
+      const onCanPlay = async () => {
+        // Set up persistent time tracking and ended event listeners
+        audioElement?.addEventListener('timeupdate', onTimeUpdate);
+        audioElement?.addEventListener('ended', onEnded);
+
+        try {
+          await audioElement?.play();
+          
+          // Set Media Session metadata when audio starts playing
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: track.name,
+              artist: track.category,
+              album: "Blockate Audio Browser"
+            });
+            navigator.mediaSession.playbackState = 'playing';
+          }
+          
+          setupCleanup();
+          resolve(true);
+        } catch (error) {
+          console.warn('Audio play failed:', error);
+          setupCleanup();
+          resolve(false);
+        }
+      };
+
+      const onError = () => {
+        console.error('Audio load failed for blob URL');
+        setupCleanup();
+        resolve(false);
+      };
+
+      const onTimeUpdate = () => {
+        if (audioElement) {
+          localCurrentTime = audioElement.currentTime;
+        }
+      };
+
+      const onEnded = () => {
+        // Audio finished playing
+        isExpanded = false;
+        onPause?.();
+        playingTrackId.set(null);
+        localCurrentTime = 0;
+        
+        // Clear Media Session metadata when audio ends
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = null;
+        }
+      };
+
+      audioElement.addEventListener('loadedmetadata', onLoadedMetadata);
+      audioElement.addEventListener('canplay', onCanPlay);
+      audioElement.addEventListener('error', onError);
+
+      // Set a timeout to avoid hanging
+      setTimeout(() => {
+        setupCleanup();
+        resolve(false);
+      }, 5000); // 5 second timeout for blob playback
+    });
+  }
 
   // Audio preview functionality (same as MusicRow)
   async function tryPlayAudio(audioUrl: string, trackId?: string): Promise<boolean> {
@@ -213,8 +367,9 @@
 
   async function handlePlayPause(event: Event) {
     event.stopPropagation();
-    
+
     if (isPlaying) {
+      // Pause current audio
       if (audioElement) {
         audioElement.pause();
         audioManager.unregister(`musiccard-${track.id}`);
@@ -225,48 +380,96 @@
       playingTrackId.set(null);
       audioDuration = null;
       downloadProgress = 0;
+      
+      // Clear Media Session metadata when pausing
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = null;
+      }
       return;
     }
 
-    if (!track.isPreviewable) {
+    // Only proceed if track is previewable
+    if (!isTrackPreviewable()) {
+      audioError = 'Preview is not available for this track.';
       return;
     }
 
     isLoadingPreview = true;
     audioError = null;
     downloadProgress = 0;
-    
+
     try {
       let audioUrl = track.audioUrl;
-      let playSuccess = false;
+      let blobUrl: string | null = null;
 
-      if (audioUrl) {
-        playSuccess = await tryPlayAudio(audioUrl, track.id);
+      // Check if we have cached audio first
+      const cachedUrl = audioCache.getCachedAudio(track.id);
+      if (cachedUrl) {
+        console.log(`Using cached audio for track ${track.id}`);
+        audioUrl = cachedUrl;
+      }
+      // If no cached audio and no audioUrl, fetch from API
+      else if (!audioUrl) {
+        console.log('Fetching preview URL from API...');
+        const fetchedUrl = await fetchPreviewUrl(track.id);
+        if (!fetchedUrl) {
+          audioError = 'No preview URL received, this audio may be moderated.';
+          console.error('fetchPreviewUrl returned empty for track:', track.id);
+          throw new Error(audioError);
+        }
+        audioUrl = fetchedUrl;
       }
 
-      if (!playSuccess) {
-        console.log('Fetching new preview URL from API...');
-        const newAudioUrl = await fetchPreviewUrl(track.id);
+      // If we have cached audio, play it directly; otherwise download first
+      if (cachedUrl) {
+        console.log('Playing cached audio...');
+        const playSuccess = await playAudioFromBlob(cachedUrl);
         
-        if (newAudioUrl) {
-          audioUrl = newAudioUrl;
-          playSuccess = await tryPlayAudio(audioUrl, track.id);
+        if (playSuccess) {
+          isExpanded = true;
+          onPlay?.(track);
+          playingTrackId.set(track.id);
+        } else {
+          audioError = 'Cached audio playback failed.';
+          console.error('Cached audio playback failed for track:', track.id);
+        }
+      } else {
+        // Set downloading state and initial progress before starting download
+        isDownloading = true;
+
+        // Download the audio first
+        console.log('Downloading audio before playback...');
+        blobUrl = await downloadAudio(audioUrl, track.id);
+
+        if (!blobUrl) {
+          audioError = 'Failed to download audio file.';
+          console.error('Download failed for track:', track.id);
+          throw new Error(audioError);
+        }
+
+        // Now play the downloaded audio
+        console.log('Playing downloaded audio...');
+        const playSuccess = await playAudioFromBlob(blobUrl);
+
+        if (playSuccess) {
+          isExpanded = true;
+          onPlay?.(track);
+          playingTrackId.set(track.id);
+        } else {
+          audioError = 'Audio format not supported or playback failed.';
+          console.error('Playback failed for track:', track.id);
         }
       }
-
-      if (playSuccess) {
-        isExpanded = true;
-        onPlay?.(track);
-        playingTrackId.set(track.id);
-      } else {
-        audioError = 'Audio cannot be played';
-        console.error('Failed to play audio for track:', track.id);
-      }
     } catch (error) {
-      audioError = 'Audio cannot be played';
-      console.error('Error in handlePlayPause:', error);
+      if (!(error instanceof Error)) return;
+      // If we already have a specific message, keep it; otherwise generic fallback
+      if (!audioError) {
+        audioError = `Unexpected error: ${error.message || error}`;
+        console.error('Unexpected error in handlePlayPause:', error);
+      }
     } finally {
       isLoadingPreview = false;
+      isDownloading = false;
     }
   }
 
@@ -296,6 +499,11 @@
   }
 
   const duration = $derived(audioDuration || track.duration || parseDuration(track.length));
+
+  // Check if track is previewable (either has isPreviewable flag or has cached audio)
+  const isTrackPreviewable = $derived(() => {
+    return track.isPreviewable || audioCache.getCachedAudio(track.id) !== null;
+  });
 
   // Cleanup audio element when component is destroyed
   $effect(() => {
@@ -343,7 +551,7 @@
     </div>
     
     <!-- Play Button -->
-    {#if track.isPreviewable}
+    {#if isTrackPreviewable()}
       <div class="relative flex-shrink-0">
         <Button
           variant={isPlaying ? 'default' : 'outline'}
@@ -352,7 +560,7 @@
           onclick={handlePlayPause}
           disabled={isLoadingPreview}
         >
-          {#if isLoadingPreview}
+          {#if isLoadingPreview || isDownloading}
             <div class="size-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
           {:else if isPlaying}
             <IcRoundPause class="size-5" />
@@ -362,9 +570,9 @@
         </Button>
         
         <!-- Download progress ring -->
-        {#if downloadProgress > 0 && downloadProgress < 100}
+        {#if isDownloading}
           <svg
-            class="absolute inset-0 size-10 -rotate-90 pointer-events-none"
+            class="pointer-events-none absolute inset-0 z-99 size-10 -rotate-90"
             viewBox="0 0 40 40"
           >
             <circle
@@ -374,8 +582,8 @@
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              stroke-dasharray="{(downloadProgress / 100) * 113.1} 113.1"
-              class="text-primary"
+              stroke-dasharray="{Math.max(0, (downloadProgress / 100) * 113.1)} 113.1"
+              class="text-primary z-99"
             />
           </svg>
         {/if}

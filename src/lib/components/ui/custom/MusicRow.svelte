@@ -261,7 +261,7 @@
     }
 
     // Only proceed if track is previewable
-    if (!track.isPreviewable) {
+    if (!isTrackPreviewable()) {
       audioError = 'Preview is not available for this track.';
       toast.error(audioError);
       return;
@@ -275,8 +275,14 @@
       let audioUrl = track.audioUrl;
       let blobUrl: string | null = null;
 
-      // First, try to get audio URL if we don't have one
-      if (!audioUrl) {
+      // Check if we have cached audio first
+      const cachedUrl = audioCache.getCachedAudio(track.id);
+      if (cachedUrl) {
+        console.log(`Using cached audio for track ${track.id}`);
+        audioUrl = cachedUrl;
+      }
+      // If no cached audio and no audioUrl, fetch from API
+      else if (!audioUrl) {
         console.log('Fetching preview URL from API...');
         try {
           const fetchedUrl = await fetchPreviewUrl(track.id);
@@ -294,30 +300,45 @@
         }
       }
 
-      // Set downloading state and initial progress before starting download
-      isDownloading = true;
-
-      // Download the audio first
-      console.log('Downloading audio before playback...');
-      blobUrl = await downloadAudio(audioUrl, track.id);
-
-      if (!blobUrl) {
-        audioError = 'Failed to download audio file.';
-        console.error('Download failed for track:', track.id);
-        throw new Error(audioError);
-      }
-
-      // Now play the downloaded audio
-      console.log('Playing downloaded audio...');
-      const playSuccess = await playAudioFromBlob(blobUrl);
-
-      if (playSuccess) {
-        isExpanded = true;
-        onPlay?.(track);
-        playingTrackId.set(track.id);
+      // If we have cached audio, play it directly; otherwise download first
+      if (cachedUrl) {
+        console.log('Playing cached audio...');
+        const playSuccess = await playAudioFromBlob(cachedUrl);
+        
+        if (playSuccess) {
+          isExpanded = true;
+          onPlay?.(track);
+          playingTrackId.set(track.id);
+        } else {
+          audioError = 'Cached audio playback failed.';
+          console.error('Cached audio playback failed for track:', track.id);
+        }
       } else {
-        audioError = 'Audio format not supported or playback failed.';
-        console.error('Playback failed for track:', track.id);
+        // Set downloading state and initial progress before starting download
+        isDownloading = true;
+
+        // Download the audio first
+        console.log('Downloading audio before playback...');
+        blobUrl = await downloadAudio(audioUrl, track.id);
+
+        if (!blobUrl) {
+          audioError = 'Failed to download audio file.';
+          console.error('Download failed for track:', track.id);
+          throw new Error(audioError);
+        }
+
+        // Now play the downloaded audio
+        console.log('Playing downloaded audio...');
+        const playSuccess = await playAudioFromBlob(blobUrl);
+
+        if (playSuccess) {
+          isExpanded = true;
+          onPlay?.(track);
+          playingTrackId.set(track.id);
+        } else {
+          audioError = 'Audio format not supported or playback failed.';
+          console.error('Playback failed for track:', track.id);
+        }
       }
     } catch (error) {
       if (!(error instanceof Error)) return;
@@ -378,6 +399,11 @@
 
   const duration = $derived(audioDuration || track.duration || parseDuration(track.length));
 
+  // Check if track is previewable (either has isPreviewable flag or has cached audio)
+  const isTrackPreviewable = $derived(() => {
+    return track.isPreviewable || audioCache.getCachedAudio(track.id) !== null;
+  });
+
   // Cleanup audio element when component is destroyed
   $effect(() => {
     return () => {
@@ -413,7 +439,7 @@
 >
   <!-- Regular track row -->
   <div class="grid grid-cols-[48px_132px_1fr_1fr_200px] items-center gap-4 px-4 py-1">
-    {#if track.isPreviewable}
+    {#if isTrackPreviewable()}
       <div class="relative ml-2">
         <Button
           variant={isPlaying ? 'default' : 'outline'}
