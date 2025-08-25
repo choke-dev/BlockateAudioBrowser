@@ -11,15 +11,21 @@ import { randomBytes } from 'crypto';
 import { eq, and } from 'drizzle-orm';
 import { publishToChannel } from '$lib/server/redis';
 
+const messages = {
+    'PENDING': 'There is already a pending request for this audio ID',
+    'APPROVED': 'This audio ID is already whitelisted for Blockate.',
+    //'REJECTED': 'The request for this audio ID has been rejected.'
+};
+
 export const POST: RequestHandler = async (event) => {
     try {
         // Require authentication
         const user = await requireAuth(event);
-        
+
         // Parse and validate request body
         const body = await event.request.json();
         const { audioId, audioName, audioCategory, isPrivate, tags } = WhitelistRequestSchema.parse(body);
-        
+
         const [existingRequest, foundAudio] = await Promise.all([
             db.query.whitelistRequests.findFirst({
                 where: and(
@@ -34,7 +40,7 @@ export const POST: RequestHandler = async (event) => {
         ]);
 
         if (foundAudio) {
-            switch(foundAudio.audioLifecycle) {
+            switch (foundAudio.audioLifecycle) {
                 case 'ACTIVE':
                     return json({ error: 'This audio ID is already whitelisted for Blockate.' }, { status: 400 });
                 case 'MODERATED':
@@ -42,14 +48,9 @@ export const POST: RequestHandler = async (event) => {
             }
         }
 
-        if (existingRequest) {
-            const messages = {
-                'PENDING': 'There is already a pending request for this audio ID',
-                'APPROVED': 'This audio ID is already whitelisted for Blockate.',
-                'REJECTED': 'The request for this audio ID has been rejected.'
-            };
+        if (existingRequest && messages[existingRequest.status as keyof typeof messages]) {
             return json(
-                { error: messages[existingRequest.status] },
+                { error: messages[existingRequest.status as keyof typeof messages] },
                 { status: 400 }
             );
         }
@@ -63,13 +64,13 @@ export const POST: RequestHandler = async (event) => {
                     Cookie: `.ROBLOSECURITY=${env.ROBLOX_ACCOUNT_COOKIE}`
                 }
             })
-        } catch(err) {
+        } catch (err) {
             if (!(err instanceof FetchError)) return json({ error: 'An unexpected error occurred. Please try again later.' }, { status: 500 });
 
             if (err.response?.status === 404) {
                 return json({ error: "The provided audio ID does not exist." }, { status: 404 });
             }
-            
+
             return json({ error: 'Failed to fetch audio metadata. Please try again later.' }, { status: 500 });
         }
 
@@ -78,7 +79,7 @@ export const POST: RequestHandler = async (event) => {
         }
 
         const moderationState = audioMetadata.moderationResult.moderationState; // "Approved", "Rejected", "Reviewing"
-        switch(moderationState) {
+        switch (moderationState) {
             case "Rejected":
                 return json({ error: "The provided audio ID has been rejected by Roblox moderation." }, { status: 400 });
             case "Reviewing":
@@ -99,7 +100,7 @@ export const POST: RequestHandler = async (event) => {
         } catch (err) {
             return json({ error: 'Failed to check if audio is accessible, please try again later.' }, { status: 500 });
         }
-        
+
         if (!audioUrlsResponse.ok) {
             return json({ error: 'Failed to check if audio is accessible, please try again later.' }, { status: 500 });
         }
@@ -107,11 +108,11 @@ export const POST: RequestHandler = async (event) => {
         if (audioUrlsResponse._data[0]?.code === 403) {
             return json({ error: 'BMusicUploader does not have "Use" permissions for this audio. Please grant them the "Use" permission in the audio\'s permissions page.' }, { status: 400 });
         }
-        
+
         // Generate a unique request ID
         const requestId = randomBytes(16).toString('hex');
         const now = new Date().toISOString();
-        
+
         // Create new whitelist request
         const whitelistRequest = await db.insert(whitelistRequests).values({
             requestId,
@@ -158,9 +159,9 @@ export const POST: RequestHandler = async (event) => {
             ...whitelistRequest[0],
             audioUrl: audioUrlsResponse._data[0] || ''
         })
-        .catch((err) => {
-            console.error('Failed to publish to Redis channel:', err);
-        });
+            .catch((err) => {
+                console.error('Failed to publish to Redis channel:', err);
+            });
 
         return json({
             id: whitelistRequest[0].requestId,
@@ -172,24 +173,24 @@ export const POST: RequestHandler = async (event) => {
             createdAt: whitelistRequest[0].createdAt,
             updatedAt: whitelistRequest[0].updatedAt
         });
-        
+
     } catch (error) {
         console.error('Whitelist request error:', error);
-        
+
         if (error instanceof z.ZodError) {
             return json(
                 { error: 'Invalid request data', details: error.issues },
                 { status: 400 }
             );
         }
-        
+
         if (error instanceof Error && error.message === 'Authentication required') {
             return json(
                 { error: 'Authentication required' },
                 { status: 401 }
             );
         }
-        
+
         return json(
             { error: 'Internal server error' },
             { status: 500 }
