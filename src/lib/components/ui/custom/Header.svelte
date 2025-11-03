@@ -20,13 +20,13 @@
   </div>
   <div class="flex items-center gap-1 md:gap-2">
     <!-- Offline Browser Button -->
-    <Button variant="outline" size="sm" href="/offline" class="text-xs md:text-sm relative">
+    <!-- <Button variant="outline" size="sm" href="/offline" class="text-xs md:text-sm relative">
       <LucideDatabase class="size-4" />
       <span class="hidden lg:inline ml-1">Manage offline data</span>
       {#if $offlineStore.hasOfflineData}
         <span class="absolute -top-1 -right-1 size-2 bg-primary rounded-full"></span>
       {/if}
-    </Button>
+    </Button> -->
 
     {#if $auth.authenticated}
       <div class="flex items-center gap-1 md:gap-2">
