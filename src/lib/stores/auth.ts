@@ -7,6 +7,7 @@ interface User {
   username: string;
   avatar: string | null;
   createdAt: string;
+  permissions: string[];
 }
 
 interface AuthState {

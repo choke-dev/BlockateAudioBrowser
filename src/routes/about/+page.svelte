@@ -71,7 +71,7 @@
           </p>
         </div>
         
-        <div class="bg-gray-800 p-6 rounded-lg">
+        <!-- <div class="bg-gray-800 p-6 rounded-lg">
           <h3 class="text-xl font-semibold mb-3 text-white flex items-center">
             📱 <span class="ml-2">Offline Support</span>
           </h3>
@@ -79,7 +79,7 @@
             Access your favorite audio content even when offline. Our intelligent caching system 
             ensures you can browse and manage your audio library anywhere.
           </p>
-        </div>
+        </div> -->
       </div>
     </section>
 

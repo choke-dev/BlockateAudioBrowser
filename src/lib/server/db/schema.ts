@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, text, timestamp, foreignKey, pgPolicy, bigint, boolean, jsonb, integer, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, text, timestamp, foreignKey, pgPolicy, bigint, boolean, jsonb, integer, pgEnum, uuid } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const audioLifecycle = pgEnum("AudioLifecycle", ['ACTIVE', 'MODERATED'])
@@ -15,6 +15,24 @@ export const users = pgTable("users", {
 }, (table) => [
 	uniqueIndex("users_robloxId_key").using("btree", table.robloxId.asc().nullsLast().op("text_ops")),
 ]).enableRLS();
+
+export const permissions = pgTable("permissions", {
+	id: uuid().primaryKey().notNull().defaultRandom().$defaultFn(() => crypto.randomUUID()),
+	node: text().notNull().unique(),
+	title: text().notNull(),
+	description: text().notNull(),
+	createdAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}).enableRLS();
+
+export const user_permissions = pgTable("user_permissions", {
+	id: uuid().primaryKey().notNull().defaultRandom().$defaultFn(() => crypto.randomUUID()),
+	userId: text().notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+	permissionId: uuid().notNull().references(() => permissions.id, { onDelete: "cascade", onUpdate: "cascade" }),
+	active: boolean().default(true).notNull(),
+	createdAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}).enableRLS();
 
 export const sessions = pgTable("sessions", {
 	id: text().primaryKey().notNull(),

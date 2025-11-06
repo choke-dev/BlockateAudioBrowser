@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto';
 import { db } from './db/index';
-import { users, sessions } from './db/schema';
-import { eq, lt } from 'drizzle-orm';
+import { users, sessions, user_permissions, permissions } from './db/schema';
+import { eq, lt, sql, and } from 'drizzle-orm';
 
 interface User {
   id: string;
@@ -9,6 +9,7 @@ interface User {
   username: string;
   avatar: string | null;
   createdAt: string;
+  permissions: string[];
 }
 
 interface Session {
@@ -50,11 +51,15 @@ class SessionService {
         username: users.username,
         avatar: users.avatar,
         createdAt: users.createdAt,
-        sessionExpiresAt: sessions.expiresAt
+        sessionExpiresAt: sessions.expiresAt,
+        permissions: sql<string[]>`array_remove(array_agg(${permissions.node}), NULL)`
       })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
+      .leftJoin(user_permissions, and(eq(users.id, user_permissions.userId), eq(user_permissions.active, true)))
+      .leftJoin(permissions, eq(user_permissions.permissionId, permissions.id))
       .where(eq(sessions.id, sessionId))
+      .groupBy(users.id, users.robloxId, users.username, users.avatar, users.createdAt, sessions.expiresAt)
       .limit(1);
 
     if (result.length === 0) {
@@ -78,7 +83,8 @@ class SessionService {
       robloxId: session.robloxId,
       username: session.username,
       avatar: session.avatar,
-      createdAt: session.createdAt
+      createdAt: session.createdAt,
+      permissions: session.permissions ?? []
     };
   }
 

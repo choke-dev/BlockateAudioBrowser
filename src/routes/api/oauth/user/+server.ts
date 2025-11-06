@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { sessionService } from '$lib/server/session';
 import { robloxOAuth } from '$lib/server/oauth';
 import type { RequestHandler } from '@sveltejs/kit';
+import { permissions } from '$lib/server/db/schema';
 
 export const GET: RequestHandler = async ({ cookies }) => {
   try {
@@ -49,7 +50,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
         robloxId: user.robloxId,
         username: user.username,
         avatar: user.avatar,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        permissions: user.permissions
       },
       scopes: storedTokens?.scope || null
     });

@@ -13,6 +13,7 @@
   import LucideShield from '~icons/lucide/shield';
   import AudioAssetSelector from './AudioAssetSelector.svelte';
   import TagInput from './TagInput.svelte';
+  import { slide } from 'svelte/transition';
 
   interface Tag {
     id: string;
@@ -31,6 +32,7 @@
     audioName: '',
     audioCategory: '',
     isPrivate: false,
+    skipModeration: false,
     tags: [] as Tag[]
   });
 
@@ -42,7 +44,7 @@
   });
 
   // Messages state (supports both errors and success messages)
-  let messages: Array<{ type: Alert.AlertVariant; content: string, icon?: Component }> = $state([]);
+  let messages: Array<{ type: Alert.AlertVariant; content: string; icon?: Component }> = $state([]);
 
   function validateForm() {
     errors.audioId = formData.audioId.trim() ? '' : 'Audio ID is required';
@@ -77,7 +79,7 @@
         method: 'POST',
         credentials: 'include'
       });
-      
+
       if (response.success && response.data) {
         // Redirect to OAuth authorization URL with inventory scope
         window.location.href = response.data;
@@ -86,11 +88,13 @@
       }
     } catch (error) {
       console.error('Re-authorization failed:', error);
-      messages = [{
-        type: 'error',
-        content: 'Failed to initiate re-authorization. Please try again.',
-        icon: LucideCircleAlert
-      }];
+      messages = [
+        {
+          type: 'error',
+          content: 'Failed to initiate re-authorization. Please try again.',
+          icon: LucideCircleAlert
+        }
+      ];
     }
   }
 
@@ -104,7 +108,7 @@
       // Prepare the request data with tags as string array
       const requestData = {
         ...formData,
-        tags: formData.tags.map(tag => tag.name)
+        tags: formData.tags.map((tag) => tag.name)
       };
 
       // Submit the whitelist request with tags included
@@ -117,19 +121,35 @@
         body: JSON.stringify(requestData)
       });
 
+      const responseMessage = response._data?.message;
       if (response.ok) {
         resetForm();
-        messages = [{ type: 'success', content: 'Successfully submitted whitelist request', icon: LucideCheck }];
-      } else {
-        const errorData = response._data;
         messages = [
-          { type: 'error', content: errorData.message || 'Failed to submit whitelist request', icon: LucideCircleAlert }
+          {
+            type: 'success',
+            content: responseMessage || 'Successfully submitted whitelist request',
+            icon: LucideCheck
+          }
+        ];
+      } else {
+        messages = [
+          {
+            type: 'error',
+            content: responseMessage || 'Failed to submit whitelist request',
+            icon: LucideCircleAlert
+          }
         ];
       }
     } catch (error) {
       if (!(error instanceof FetchError)) return;
       console.error('Error submitting whitelist request:', error);
-      messages = [{ type: 'error', content: error.data.error ?? 'An error occurred while submitting the request', icon: LucideCircleAlert }];
+      messages = [
+        {
+          type: 'error',
+          content: error.data.message ?? 'An error occurred while submitting the request',
+          icon: LucideCircleAlert
+        }
+      ];
     } finally {
       isSubmitting = false;
     }
@@ -141,7 +161,7 @@
     <Dialog.Trigger>
       <Button variant="outline" class={triggerClass} size="sm">
         <LucidePlus class="size-4" />
-        <span class="hidden sm:inline ml-2">Request Whitelist</span>
+        <span class="ml-2 hidden sm:inline">Request Whitelist</span>
       </Button>
     </Dialog.Trigger>
     <Dialog.Content class="max-w-xl">
@@ -150,10 +170,10 @@
         <Dialog.Description>
           Submits a request to whitelist an audio ID for use in Blockate
           <br />
-          Need help? View the 
+          Need help? View the
           <a
             href="/frequently-asked-questions/whitelist-request-guide"
-            class="text-white hover:text-gray-300 underline text-sm"
+            class="text-sm text-white underline hover:text-gray-300"
             target="_blank"
           >
             Whitelist Request Guide
@@ -180,7 +200,9 @@
         class="space-y-4"
       >
         <div class="space-y-2">
-          <label for="audioId" class="text-sm font-medium">Audio ID <span class="text-red-500">*</span> </label>
+          <label for="audioId" class="text-sm font-medium"
+            >Audio ID <span class="text-red-500">*</span>
+          </label>
           <div class="flex gap-2">
             <Input
               id="audioId"
@@ -197,14 +219,18 @@
               disabled={isSubmitting}
             />
           </div>
-          <p class="text-muted-foreground text-xs">Enter an audio ID manually or select from your inventory</p>
+          <p class="text-muted-foreground text-xs">
+            Enter an audio ID manually or select from your inventory
+          </p>
           {#if errors.audioId}
             <p class="text-xs text-red-500">{errors.audioId}</p>
           {/if}
         </div>
 
         <div class="space-y-2">
-          <label for="audioName" class="text-sm font-medium">Audio Name <span class="text-red-500">*</span> </label>
+          <label for="audioName" class="text-sm font-medium"
+            >Audio Name <span class="text-red-500">*</span>
+          </label>
           <Input
             id="audioName"
             bind:value={formData.audioName}
@@ -220,7 +246,9 @@
         </div>
 
         <div class="space-y-2">
-          <label for="audioCategory" class="text-sm font-medium">Audio Category <span class="text-red-500">*</span> </label>
+          <label for="audioCategory" class="text-sm font-medium"
+            >Audio Category <span class="text-red-500">*</span>
+          </label>
           <Input
             id="audioCategory"
             bind:value={formData.audioCategory}
@@ -247,15 +275,47 @@
               If checked, this audio will not be searchable in the public database
             </p>
             {#if formData.isPrivate}
-              <Alert.Root variant="warning">
-                <Alert.Description>
-                  This option is ignored if the audio is searchable on the internet (e.g., Google,
-                  YouTube, etc.). Publicly available content cannot be made private.
-                </Alert.Description>
-              </Alert.Root>
+              <div transition:slide={{ duration: 150 }}>
+                <Alert.Root variant="warning">
+                  <Alert.Description>
+                    This option is ignored if the audio is searchable on the internet (e.g., Google,
+                    YouTube, etc.). Publicly available content cannot be made private.
+                  </Alert.Description>
+                </Alert.Root>
+              </div>
             {/if}
           </div>
         </div>
+
+        {#if $auth.user?.permissions?.includes('whitelistRequest.skipModeration')}
+          <div class="space-y-2">
+            <div class="flex items-center space-x-2">
+              <Checkbox
+                id="skipModeration"
+                bind:checked={formData.skipModeration}
+                disabled={isSubmitting}
+              />
+              <label for="skipModeration" class="text-sm font-normal">Skip Moderation</label>
+            </div>
+            <div class="space-y-1">
+              <p class="text-muted-foreground text-xs">
+                If checked, this audio will be instantly approved for use in-game.
+              </p>
+              {#if formData.skipModeration}
+                <div class="mt-2" transition:slide={{ duration: 150 }}>
+                  <Alert.Root variant="warning">
+                    <Alert.Description>
+                      Only whitelist audio that fully complies with Roblox policies and Blockate
+                      rules. Bypassed, copyrighted, or inappropriate content is strictly prohibited.
+                      Misuse of this privilege may result in permanent loss of instant-approval
+                      access and further action.
+                    </Alert.Description>
+                  </Alert.Root>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
 
         <div class="space-y-2">
           <label class="text-sm font-medium">Tags</label>
@@ -295,13 +355,14 @@
       <Alert.Root>
         <LucideCircleAlert />
         <Alert.Description>
-          To use this feature, we need permission to view your Roblox inventory. You'll be redirected to Roblox to grant this access and then returned here.
+          To use this feature, we need permission to view your Roblox inventory. You'll be
+          redirected to Roblox to grant this access and then returned here.
         </Alert.Description>
       </Alert.Root>
 
-      <div class="text-sm text-muted-foreground">
+      <div class="text-muted-foreground text-sm">
         <p><strong>What this allows:</strong></p>
-        <ul class="list-disc list-inside mt-2 space-y-1">
+        <ul class="mt-2 list-inside list-disc space-y-1">
           <li>View your audio assets from your Roblox inventory</li>
           <li>Auto-fill asset information when selecting from your inventory</li>
           <li>Streamline the whitelist request process</li>
@@ -310,19 +371,10 @@
     </div>
 
     <Dialog.Footer>
-      <Button
-        type="button"
-        variant="outline"
-        onclick={() => (showReauthDialog = false)}
-      >
+      <Button type="button" variant="outline" onclick={() => (showReauthDialog = false)}>
         Cancel
       </Button>
-      <Button
-        type="button"
-        onclick={handleReauthorization}
-      >
-        Grant Permission
-      </Button>
+      <Button type="button" onclick={handleReauthorization}>Grant Permission</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
