@@ -201,7 +201,7 @@
       >
         <div class="space-y-2">
           <label for="audioId" class="text-sm font-medium"
-            >Audio ID <span class="text-red-500">*</span>
+            >Audio ID
           </label>
           <div class="flex gap-2">
             <Input
@@ -229,7 +229,7 @@
 
         <div class="space-y-2">
           <label for="audioName" class="text-sm font-medium"
-            >Audio Name <span class="text-red-500">*</span>
+            >Audio Name
           </label>
           <Input
             id="audioName"
@@ -247,7 +247,7 @@
 
         <div class="space-y-2">
           <label for="audioCategory" class="text-sm font-medium"
-            >Audio Category <span class="text-red-500">*</span>
+            >Audio Category
           </label>
           <Input
             id="audioCategory"
@@ -318,7 +318,10 @@
         {/if}
 
         <div class="space-y-2">
-          <label class="text-sm font-medium">Tags</label>
+          <label class="text-sm font-medium">
+            Tags
+            <span class="text-gray-500">(optional)</span>
+          </label>
           <TagInput
             bind:tags={formData.tags}
             placeholder="Add tags to describe this audio..."
