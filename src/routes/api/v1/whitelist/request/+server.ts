@@ -1,3 +1,4 @@
+//@ts-nocheck see line #28
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireAuth } from '$lib/server/auth.js';
@@ -22,6 +23,9 @@ export const POST: RequestHandler = async (event) => {
     try {
         // Require authentication
         const user = await requireAuth(event);
+
+        // i should be using flags for this lmao
+        return json({ message: 'Audio whitelisting is temporarily unavailable due to an internal service outage.' }, { status: 503 });
 
         // Parse and validate request body
         const body = await event.request.json();

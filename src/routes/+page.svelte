@@ -373,6 +373,7 @@
     <!-- Page Header -->
     <div class="mb-6 md:mb-8">
 
+      <!-- i should be using flags for this lmao -->
       <Alert.Root variant="warning" class="flex-shrink-0 mb-8">
           <LucideTriangleAlert class="size-4" />
           <Alert.Title class="font-bold">Notice</Alert.Title>
