@@ -28,7 +28,7 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/typography": "^0.5.16",
-    "@tailwindcss/vite": "^4.0.0",
+    "@tailwindcss/vite": "^4.2.1",
     "@tanstack/table-core": "^8.20.5",
     "@types/node": "^22",
     "bits-ui": "^2.8.6",
@@ -50,19 +50,23 @@
     "sveltekit-superforms": "^2.26.1",
     "tailwind-merge": "^3.3.1",
     "tailwind-variants": "^1.0.0",
-    "tailwindcss": "^4.0.0",
+    "tailwindcss": "^4.2.1",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.20.0",
     "unplugin-icons": "^22.1.0",
-    "vite": "^6.2.6",
+    "vite": "^7.3.1",
     "vite-plugin-devtools-json": "^0.2.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "postcss-selector-parser": "^6.1.2"
+    }
   },
   "dependencies": {
     "@scalar/sveltekit": "^0.1.16",
