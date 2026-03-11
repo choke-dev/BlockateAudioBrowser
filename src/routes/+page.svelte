@@ -18,6 +18,9 @@
 
   import LucideWifiOff from '~icons/lucide/wifi-off';
 
+  import * as Alert from '$lib/components/ui/alert/index.js';
+  import LucideTriangleAlert from '~icons/lucide/triangle-alert';
+
   // API Response types
   interface AudioTrack {
     id: string;
@@ -369,6 +372,15 @@
   <div class="w-full py-4 px-2 sm:px-4 md:py-8 md:px-8">
     <!-- Page Header -->
     <div class="mb-6 md:mb-8">
+
+      <Alert.Root variant="warning" class="flex-shrink-0 mb-8">
+          <LucideTriangleAlert class="size-4" />
+          <Alert.Title class="font-bold">Notice</Alert.Title>
+          <Alert.Description>
+            Audio whitelisting is currently down. Existing sounds are unaffected, but new whitelist requests cannot be processed right now.
+          </Alert.Description>
+      </Alert.Root>
+
       <!-- Search and Filter Controls -->
       <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center">
         <div class="flex-1">
