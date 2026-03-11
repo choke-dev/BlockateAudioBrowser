@@ -378,7 +378,8 @@
           <LucideTriangleAlert class="size-4" />
           <Alert.Title class="font-bold">Notice</Alert.Title>
           <Alert.Description>
-            Audio whitelisting is currently down. Existing sounds are unaffected, but new whitelist requests cannot be processed right now.
+            <p>Audio whitelisting is currently down. Existing sounds are unaffected, but new whitelist requests cannot be processed right now.</p>
+            <p>In the meantime, you may join our <a href="https://discord.gg/VxzgP8kcMM" class="text-blue-500 hover:underline">Discord server</a> for updates on this issue.</p>
           </Alert.Description>
       </Alert.Root>
 
