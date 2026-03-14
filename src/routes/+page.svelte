@@ -373,15 +373,15 @@
     <!-- Page Header -->
     <div class="mb-6 md:mb-8">
 
-      <!-- i should be using flags for this lmao -->
-      <Alert.Root variant="warning" class="flex-shrink-0 mb-8">
+      <!-- will add this later -->
+      <!-- <Alert.Root variant="warning" class="flex-shrink-0 mb-8">
           <LucideTriangleAlert class="size-4" />
           <Alert.Title class="font-bold">Notice</Alert.Title>
           <Alert.Description>
             <p>Audio whitelisting is currently down. Existing sounds are unaffected, but new whitelist requests cannot be processed right now.</p>
             <p>In the meantime, you may join our <a href="https://discord.gg/VxzgP8kcMM" class="text-blue-500 hover:underline">Discord server</a> for updates on this issue.</p>
           </Alert.Description>
-      </Alert.Root>
+      </Alert.Root> -->
 
       <!-- Search and Filter Controls -->
       <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center">

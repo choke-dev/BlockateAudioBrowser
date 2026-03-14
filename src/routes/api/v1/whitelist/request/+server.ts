@@ -24,9 +24,6 @@ export const POST: RequestHandler = async (event) => {
         // Require authentication
         const user = await requireAuth(event);
 
-        // i should be using flags for this lmao
-        return json({ message: 'Audio whitelisting is temporarily unavailable due to an internal service outage.' }, { status: 503 });
-
         // Parse and validate request body
         const body = await event.request.json();
         const { audioId, audioName, audioCategory, isPrivate, skipModeration, tags } = WhitelistRequestSchema.parse(body);
