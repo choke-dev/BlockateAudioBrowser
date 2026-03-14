@@ -146,43 +146,43 @@ async function performFuzzySearch(
 
 	// Execute search and count queries concurrently
 	const [searchResults, countResults] = await Promise.all([
-		db.execute(sql`
-			SELECT id, name, category, tags, is_previewable, whitelister, audio_url, created_at
-			FROM ${audios}
-			WHERE audio_lifecycle = 'ACTIVE'
-			${canViewPrivateAudios ? "" : "AND audio_visibility = 'PUBLIC'"}
-			AND (
-				name ILIKE ${'%' + query + '%'} OR
-				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
-				EXISTS (
-					SELECT 1 FROM unnest(tags) AS tag
-					WHERE tag ILIKE ${'%' + query + '%'} OR
-					extensions.SIMILARITY(tag, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
-				)
-			)
-			${filterSql}
-			${sortSql}
-			LIMIT ${MAX_SEARCH_RESULTS_PER_PAGE}
-			OFFSET ${offset}
-		`),
-		
-		db.execute(sql`
-			SELECT COUNT(*) as count
-			FROM ${audios}
-			WHERE audio_lifecycle = 'ACTIVE'
-			${canViewPrivateAudios ? "" : "AND audio_visibility = 'PUBLIC'"}
-			AND (
-				name ILIKE ${'%' + query + '%'} OR
-				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
-				EXISTS (
-					SELECT 1 FROM unnest(tags) AS tag
-					WHERE tag ILIKE ${'%' + query + '%'} OR
-					extensions.SIMILARITY(tag, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
-				)
-			)
-			${filterSql}
-		`)
-	]);
+        db.execute(sql`
+            SELECT id, name, category, tags, is_previewable, whitelister, audio_url, created_at
+            FROM ${audios}
+            WHERE audio_lifecycle = 'ACTIVE'
+            ${canViewPrivateAudios ? sql`` : sql`AND audio_visibility = 'PUBLIC'`}
+            AND (
+                name ILIKE ${'%' + query + '%'} OR
+                extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
+                EXISTS (
+                    SELECT 1 FROM unnest(tags) AS tag
+                    WHERE tag ILIKE ${'%' + query + '%'} OR
+                    extensions.SIMILARITY(tag, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
+                )
+            )
+            ${filterSql}
+            ${sortSql}
+            LIMIT ${MAX_SEARCH_RESULTS_PER_PAGE}
+            OFFSET ${offset}
+        `),
+        
+        db.execute(sql`
+            SELECT COUNT(*) as count
+            FROM ${audios}
+            WHERE audio_lifecycle = 'ACTIVE'
+            ${canViewPrivateAudios ? sql`` : sql`AND audio_visibility = 'PUBLIC'`}
+            AND (
+                name ILIKE ${'%' + query + '%'} OR
+                extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
+                EXISTS (
+                    SELECT 1 FROM unnest(tags) AS tag
+                    WHERE tag ILIKE ${'%' + query + '%'} OR
+                    extensions.SIMILARITY(tag, ${query}) > ${FUZZY_SEARCH_THRESHOLD}
+                )
+            )
+            ${filterSql}
+        `)
+    ]);
 
 	return {
 		results: searchResults,
