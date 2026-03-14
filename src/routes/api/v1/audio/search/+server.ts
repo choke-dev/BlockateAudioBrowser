@@ -149,8 +149,8 @@ async function performFuzzySearch(
 		db.execute(sql`
 			SELECT id, name, category, tags, is_previewable, whitelister, audio_url, created_at
 			FROM ${audios}
-			${canViewPrivateAudios ? "" : "WHERE audio_visibility = 'PUBLIC'"}
-			AND audio_lifecycle = 'ACTIVE'
+			WHERE audio_lifecycle = 'ACTIVE'
+			${canViewPrivateAudios ? "" : "AND audio_visibility = 'PUBLIC'"}
 			AND (
 				name ILIKE ${'%' + query + '%'} OR
 				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
@@ -169,8 +169,8 @@ async function performFuzzySearch(
 		db.execute(sql`
 			SELECT COUNT(*) as count
 			FROM ${audios}
-			${canViewPrivateAudios ? "" : "WHERE audio_visibility = 'PUBLIC'"}
-			AND audio_lifecycle = 'ACTIVE'
+			WHERE audio_lifecycle = 'ACTIVE'
+			${canViewPrivateAudios ? "" : "AND audio_visibility = 'PUBLIC'"}
 			AND (
 				name ILIKE ${'%' + query + '%'} OR
 				extensions.SIMILARITY(name, ${query}) > ${FUZZY_SEARCH_THRESHOLD} OR
