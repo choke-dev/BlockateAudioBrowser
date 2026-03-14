@@ -4,6 +4,8 @@ import type { RequestHandler } from "./$types";
 import { removeAccentsEnhanced } from '@urbanzoo/remove-accents';
 import { and, or, eq, ilike, count, desc, asc, sql } from 'drizzle-orm';
 import SearchRequestSchema from './schema';
+import { auth } from '$lib/stores/auth.js';
+import { getSessionWithUser } from '$lib/server/session';
 
 // Constants
 const MAX_SEARCH_RESULTS_PER_PAGE = 25;
@@ -80,9 +82,10 @@ function buildSortCondition(sort: SortOption | null) {
 }
 
 // Helper function to build base where conditions
-function buildBaseWhereConditions(query?: string) {
+function buildBaseWhereConditions(query?: string, returnPrivateAudios: boolean = false) {
+	if (returnPrivateAudios) console.log("Returning private audios");
 	const baseConditions = [
-		eq(audios.audioVisibility, 'PUBLIC'),
+		...returnPrivateAudios ? [] : [eq(audios.audioVisibility, 'PUBLIC')],
 		eq(audios.audioLifecycle, 'ACTIVE')
 	];
 
@@ -290,7 +293,10 @@ export const POST: RequestHandler = async (event) => {
 		}
 
 		// Build query conditions
-		const whereConditions = buildBaseWhereConditions(query);
+		const sessionData = await getSessionWithUser(event.cookies);
+		const canViewPrivateAudios = sessionData?.user?.permissions.includes('audios.viewPrivateAudio') || false;
+
+		const whereConditions = buildBaseWhereConditions(query, canViewPrivateAudios);
 		const filterConditions = searchFilters ? buildFilterConditions(searchFilters) : null;
 		const sortCondition = buildSortCondition(sortOption);
 
