@@ -67,12 +67,16 @@ export const POST: RequestHandler = async (event) => {
                 }
             })
         } catch (err) {
-            if (!(err instanceof FetchError)) return json({ message: 'An unexpected error occurred. Please try again later.' }, { status: 500 });
+            if (!(err instanceof FetchError)) {
+                console.log(err);
+                return json({ message: 'An unexpected error occurred. Please try again later.' }, { status: 500 });
+            }
 
             if (err.response?.status === 404) {
                 return json({ message: "The provided audio ID does not exist." }, { status: 404 });
             }
-
+            
+            console.error(err);
             return json({ message: 'Failed to fetch audio metadata. Please try again later.' }, { status: 500 });
         }
 
